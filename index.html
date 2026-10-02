@@ -130,13 +130,27 @@ html:has(body.on-stage) { background: #0b0202; }
 
 .bio { margin-top: 69px; text-align: left; line-height: var(--lh); }
 .promo[hidden] + .bio { margin-top: 128px; }
-.gigs { margin-top: 74px; }
-.gigs h2 { color: var(--paper); margin-bottom: calc(var(--lh-c) * .85); }
-.gig + .gig { margin-top: var(--lh-c); }
-.gig.soon + .gig { margin-top: calc(var(--lh-c) * .72); }
-.gig.gap { margin-top: calc(var(--lh-c) * 1.45); }
-.gig.past { color: var(--ember); }
-.gig u { text-decoration-thickness: .07em; text-underline-offset: .12em; }
+/* gigs: upcoming dates set large like a tour poster, played ones as a compact list below */
+.gigs { margin: 74px auto 0; max-width: 1000px; }
+.gigs h2 { color: var(--paper); }
+.gig-list { list-style: none; margin: 0; padding: 0; }
+.gigs-next { margin-top: clamp(22px, 3vw, 34px); border-bottom: 2px solid rgba(255, 213, 94, .4); }
+.gigs-next .gig { display: grid; grid-template-columns: minmax(0, 2.5fr) minmax(0, 5fr) auto; align-items: center; column-gap: clamp(16px, 3vw, 40px); padding-block: clamp(18px, 2.6vw, 30px); border-top: 2px solid rgba(255, 213, 94, .4); }
+.gig-date { font-weight: 700; font-size: clamp(50px, 9.4vw, 104px); line-height: .86; letter-spacing: -.03em; color: var(--logo); font-variant-numeric: tabular-nums; }
+.gig-what { display: grid; gap: .12em; min-width: 0; line-height: 1.15; }
+.gig-what b { font-size: clamp(19px, 3vw, 30px); text-wrap: balance; }
+.gig-what span { font-size: clamp(15px, 2.3vw, 23px); }
+.gig-when { display: grid; gap: .1em; text-align: right; font-size: clamp(13px, 1.8vw, 18px); line-height: 1.3; white-space: nowrap; }
+.gig-in { font-weight: 700; color: var(--logo); }
+.gigs-none { margin-top: 30px; text-align: center; }
+.gigs-sub { margin: clamp(34px, 5vw, 52px) 0 8px; font-size: clamp(13px, 1.8vw, 18px); line-height: 1.3; font-weight: 700; color: var(--paper); }
+.gigs-past { border-bottom: 1px solid rgba(255, 213, 94, .22); }
+.gigs-past .gig { display: grid; grid-template-columns: 3.6em minmax(0, 1.25fr) minmax(0, 1fr); column-gap: 16px; padding-block: .5em; border-top: 1px solid rgba(255, 213, 94, .22); font-size: clamp(13px, 1.8vw, 18px); line-height: 1.3; color: rgba(255, 213, 94, .74); }
+.gigs-past .gig-date { font-size: 1em; line-height: inherit; letter-spacing: 0; color: inherit; }
+.gigs-past .gig-what { display: contents; }
+.gigs-past .gig-what b, .gigs-past .gig-what span { font-size: 1em; }
+.gigs-past .gig-what b { font-weight: 400; color: var(--sun); }
+.gigs-past .gig-when { display: none; }
 
 .posters { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 57px; }
 .posters .prow { display: contents; }
@@ -149,8 +163,23 @@ html:has(body.on-stage) { background: #0b0202; }
 .embed iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 .embed.spotify { height: 752px; background: none; }
 .videos { margin-top: 155px; }
-.video { max-width: 1000px; aspect-ratio: 1000 / 563; }
-.video + .video { margin-top: 20px; }
+.clips { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px 16px; max-width: 1000px; margin: 27px auto 0; }
+.clip { display: grid; gap: 9px; align-content: start; text-decoration: none; font-size: clamp(14px, 1.7vw, 18px); line-height: 1.25; }
+.clip-main { grid-column: 1 / -1; font-size: clamp(17px, 2.6vw, 26px); }
+.clip-pic { position: relative; display: block; aspect-ratio: 16 / 9; overflow: hidden; background: var(--night); }
+.clip-pic img { width: 100%; height: 100%; object-fit: cover; transition: transform .45s ease, opacity .3s; }
+.clip-play { position: absolute; left: 50%; top: 50%; width: clamp(40px, 16%, 92px); aspect-ratio: 1; margin: 0; transform: translate(-50%, -50%); display: grid; place-items: center; border-radius: 50%; background: var(--logo); color: var(--night); transition: transform .2s; }
+.clip-play svg { width: 34%; height: 34%; margin-left: 8%; fill: currentColor; }
+.clip:hover .clip-pic img, .clip:focus-visible .clip-pic img { transform: scale(1.04); opacity: .85; }
+.clip:hover .clip-play, .clip:focus-visible .clip-play { transform: translate(-50%, -50%) scale(1.1); }
+.clip-name b { display: block; }
+.clip-main .clip-name { text-align: center; }
+.clip-main .clip-name b { display: inline; }
+.player { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; background: rgba(11, 2, 2, .96); }
+.player-frame { width: min(100vw, calc(100vh * 16 / 9)); width: min(100vw, calc(100dvh * 16 / 9)); aspect-ratio: 16 / 9; background: #000; }
+.player-frame iframe { display: block; width: 100%; height: 100%; border: 0; }
+.player-close { position: absolute; top: calc(12px + env(safe-area-inset-top, 0px)); right: 12px; width: 44px; height: 44px; display: grid; place-items: center; border: 0; border-radius: 50%; background: var(--logo); color: var(--night); cursor: pointer; }
+.player-close svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2.4; }
 .embed .fallback { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: .5em; padding: 16px; text-align: center; color: var(--sun); text-decoration: none; }
 .embed .fallback b { text-wrap: balance; }
 .embed .fallback span { font-size: .7em; line-height: 1.3; text-decoration: underline; text-underline-offset: .2em; }
@@ -168,6 +197,12 @@ html:has(body.on-stage) { background: #0b0202; }
 
 @media (max-width: 768px) { .text { padding-inline: 5%; } }
 @media (max-width: 600px) {
+  .gigs-next .gig { grid-template-columns: auto minmax(0, 1fr); column-gap: 16px; row-gap: 4px; }
+  .gig-when { grid-column: 2; display: flex; gap: .5em; text-align: left; }
+  .gig-date { grid-row: span 2; align-self: center; }
+  .gigs-past .gig { grid-template-columns: 3.4em minmax(0, 1fr); }
+  .gigs-past .gig-what { display: grid; gap: 0; }
+  .clips { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 12px; }
   .posters { flex-direction: column; }
   .posters .prow { display: flex; gap: 8px; }
   .posters .prow:empty { display: none; }
@@ -307,14 +342,22 @@ body.on-stage { background: var(--black); color: var(--white); font-family: var(
     <p>Mēs esam poprock / indie mūzikas grupa "Tā Nav Saule". Ražojam pozitīvu enerģiju un mums nav nekāda sakara ar saules dūrienu. Ķemmēt stīgas ir mūsu D vitamīns. Ūsas ir kā mākoņi -&nbsp;te viņas ir, te viņas nav. Kaspars ar savu balsi varētu pārliecināt pat kaimiņu kaķi nākt uz koncertiem. Edžus spēj izspēlēt tik precīzu ritmu, ka Tava Ome sāks klapēt paklājus ritmā. Jānis ģitārai pieskaras tā, it kā tā būtu viņa trešā roka - ne vienmēr skaidrs, kurš kuru spēlē. Neviens negribēja no mums vilkt papēžus, tādēļ Elīna vēl īsti nezin visu, ko zinām mēs, tāpēc mēs piekāpjamies viņai it visā, ko nezinam. Mēs nesolām mainīt pasauli, bet varam garantēt, ka pēc mūsu mūzikas dzīve šķitīs nedaudz gaišāka, vieglāka un mazliet vairāk kā brīvdiena.</p>
   </section>
 
-  <section class="text gigs">
-    <h2>Pasākumi 2026</h2>
-    <p class="gig soon"><b>11. Jūlijs<br>Naukšēnu pagasta svētki 2026, 19:00</b><br>Naukšēni, Latvija<br>Naukšēnu muižas estrāde<br>19:00</p>
-    <p class="gig past"><b>19. Jūnijs<br>Manufaktūra Brūzis, 20:00</b><br>Tallinas iela 10-3, Rīga<br>Brīvības gatve 401c, Rīga</p>
-    <p class="gig past"><b>13. Jūnijs<br>EHL sezonas noslēgums</b><br>Tallinas Kvartāls<br>Tallinas iela 10-3, Rīga</p>
-    <p class="gig past"><b>11. Jūnijs<br>Riga Music Week</b><br>Kimmel kvartāls / Industriālā zona<br>Bruņinieku iela 2</p>
-    <p class="gig past gap"><b>17. Aprīlī</b><br>Laska, 19:30<br>Vagonu iela 21, Rīga<br>Honey Blue + Tā nav Saule<br>biļetes: fazevenets.lv</p>
-    <p class="gig past"><b>27. Martā</b><br>Manufaktūra Brūzis, 20:00<br>Brīvības gatve 401c, Rīga<br>Īpašais viesis - <b><u>PALÚ</u></b><br>ieeja bez maksas</p>
+  <section class="gigs" id="pasakumi">
+    <h2 class="text">Pasākumi</h2>
+    <ol class="gig-list gigs-next" id="gigsNext">
+      <li class="gig" data-date="2026-10-10"><time class="gig-date" datetime="2026-10-10">10.10</time><div class="gig-what"><b>Akustiskais koncerts</b><span>Restorāns Mēle</span></div><div class="gig-when"><span>sestdiena</span><span class="gig-in"></span></div></li>
+      <li class="gig" data-date="2026-11-04"><time class="gig-date" datetime="2026-11-04">04.11</time><div class="gig-what"><b>Baltic Music Week</b></div><div class="gig-when"><span>trešdiena</span><span class="gig-in"></span></div></li>
+    </ol>
+    <p class="gigs-none" id="gigsNone" hidden>Jauni koncerti drīz.</p>
+    <h3 class="gigs-sub" id="gigsSub">Jau nospēlēti</h3>
+    <ol class="gig-list gigs-past" id="gigsPast">
+      <li class="gig" data-date="2026-07-11"><time class="gig-date" datetime="2026-07-11">11.07</time><div class="gig-what"><b>Naukšēnu pagasta svētki</b><span>Naukšēnu muižas estrāde</span></div><div class="gig-when"><span class="gig-in"></span></div></li>
+      <li class="gig" data-date="2026-06-19"><time class="gig-date" datetime="2026-06-19">19.06</time><div class="gig-what"><b>Manufaktūra Brūzis</b><span>Rīga</span></div><div class="gig-when"><span class="gig-in"></span></div></li>
+      <li class="gig" data-date="2026-06-13"><time class="gig-date" datetime="2026-06-13">13.06</time><div class="gig-what"><b>EHL sezonas noslēgums</b><span>Tallinas kvartāls, Rīga</span></div><div class="gig-when"><span class="gig-in"></span></div></li>
+      <li class="gig" data-date="2026-06-11"><time class="gig-date" datetime="2026-06-11">11.06</time><div class="gig-what"><b>Riga Music Week</b><span>Kimmel kvartāls, Rīga</span></div><div class="gig-when"><span class="gig-in"></span></div></li>
+      <li class="gig" data-date="2026-04-17"><time class="gig-date" datetime="2026-04-17">17.04</time><div class="gig-what"><b>Honey Blue + Tā nav saule</b><span>Laska, Rīga</span></div><div class="gig-when"><span class="gig-in"></span></div></li>
+      <li class="gig" data-date="2026-03-27"><time class="gig-date" datetime="2026-03-27">27.03</time><div class="gig-what"><b>Manufaktūra Brūzis, īpašais viesis PALÚ</b><span>Rīga</span></div><div class="gig-when"><span class="gig-in"></span></div></li>
+    </ol>
   </section>
 
   <div class="posters" id="posters" aria-label="Koncertu plakāti">
@@ -337,22 +380,14 @@ body.on-stage { background: var(--black); color: var(--white); font-family: var(
     </div>
   </section>
 
-  <section class="videos">
+  <section class="videos" id="video">
     <h2 class="text">Video klipi</h2>
-    <div class="embed video" data-href="https://www.youtube.com/watch?v=nPVej_lTheQ" data-title="Tā nav saule &amp; PALÚ – Noguris rīts" data-cta="Skatīties YouTube">
-      <iframe src="https://www.youtube.com/embed/nPVej_lTheQ" title="Tā nav saule &amp; PALÚ – Noguris rīts" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
-    </div>
-    <div class="embed video" data-href="https://www.youtube.com/watch?v=JqaEr6JAVR8" data-title="Tā nav saule – Melnās atslēdziņas" data-cta="Skatīties YouTube">
-      <iframe src="https://www.youtube.com/embed/JqaEr6JAVR8" title="Tā nav saule – Melnās atslēdziņas" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
-    </div>
-    <div class="embed video" data-href="https://www.youtube.com/watch?v=CQFmgzcvxdA" data-title="Tā nav saule – Luksofori" data-cta="Skatīties YouTube">
-      <iframe src="https://www.youtube.com/embed/CQFmgzcvxdA" title="Tā nav saule – Luksofori" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
-    </div>
-    <div class="embed video" data-href="https://www.youtube.com/watch?v=XLYqtX2kxls" data-title="Tā nav saule – Rutīna" data-cta="Skatīties YouTube">
-      <iframe src="https://www.youtube.com/embed/XLYqtX2kxls" title="Tā nav saule – Rutīna" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
-    </div>
-    <div class="embed video" data-href="https://www.youtube.com/watch?v=JoQnstBQlgs" data-title="Tā nav saule – Vējā" data-cta="Skatīties YouTube">
-      <iframe src="https://www.youtube.com/embed/JoQnstBQlgs" title="Tā nav saule – Vējā" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
+    <div class="clips" id="clips">
+      <a class="clip clip-main" href="https://www.youtube.com/watch?v=nPVej_lTheQ" data-yt="nPVej_lTheQ" target="_blank" rel="noopener"><span class="clip-pic"><img loading="lazy" src="https://i.ytimg.com/vi/nPVej_lTheQ/maxresdefault.jpg" alt=""><span class="clip-play"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 0.5 9.5 5 1.5 9.5z"/></svg></span></span><span class="clip-name"><b>Noguris rīts</b> ar PALÚ</span></a>
+      <a class="clip" href="https://www.youtube.com/watch?v=JqaEr6JAVR8" data-yt="JqaEr6JAVR8" target="_blank" rel="noopener"><span class="clip-pic"><img loading="lazy" src="https://i.ytimg.com/vi/JqaEr6JAVR8/maxresdefault.jpg" alt=""><span class="clip-play"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 0.5 9.5 5 1.5 9.5z"/></svg></span></span><span class="clip-name"><b>Melnās atslēdziņas</b></span></a>
+      <a class="clip" href="https://www.youtube.com/watch?v=CQFmgzcvxdA" data-yt="CQFmgzcvxdA" target="_blank" rel="noopener"><span class="clip-pic"><img loading="lazy" src="https://i.ytimg.com/vi/CQFmgzcvxdA/maxresdefault.jpg" alt=""><span class="clip-play"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 0.5 9.5 5 1.5 9.5z"/></svg></span></span><span class="clip-name"><b>Luksofori</b></span></a>
+      <a class="clip" href="https://www.youtube.com/watch?v=XLYqtX2kxls" data-yt="XLYqtX2kxls" target="_blank" rel="noopener"><span class="clip-pic"><img loading="lazy" src="https://i.ytimg.com/vi/XLYqtX2kxls/maxresdefault.jpg" alt=""><span class="clip-play"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 0.5 9.5 5 1.5 9.5z"/></svg></span></span><span class="clip-name"><b>Rutīna</b></span></a>
+      <a class="clip" href="https://www.youtube.com/watch?v=JoQnstBQlgs" data-yt="JoQnstBQlgs" target="_blank" rel="noopener"><span class="clip-pic"><img loading="lazy" src="https://i.ytimg.com/vi/JoQnstBQlgs/maxresdefault.jpg" alt=""><span class="clip-play"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 0.5 9.5 5 1.5 9.5z"/></svg></span></span><span class="clip-name"><b>Vējā</b></span></a>
     </div>
   </section>
 
@@ -1768,6 +1803,7 @@ return { pause() { if (Audio.playing) { Audio.pause(); UI.sync(); } } };
   }
   function closeBox() { if (!box) return; var from = box._from; box.remove(); box = null; if (from && from.isConnected) from.focus(); }
   document.addEventListener("keydown", function (e) {
+    if (player && e.key === "Escape") return closePlayer();
     if (!box) return;
     if (e.key === "Escape") return closeBox();
     if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
@@ -1775,6 +1811,52 @@ return { pause() { if (Audio.playing) { Audio.pause(); UI.sync(); } } };
     if (i < 0 || live.length < 2) return;
     openBox(live[(i + (e.key === "ArrowRight" ? 1 : live.length - 1)) % live.length]);
   });
+
+  // gigs: a date that has passed moves down to the played list; upcoming ones say how soon
+  (function () {
+    var next = document.getElementById("gigsNext"), past = document.getElementById("gigsPast"), now = new Date();
+    var today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    [].slice.call(next.children).forEach(function (li) {
+      var p = li.dataset.date.split("-"), day = new Date(+p[0], p[1] - 1, +p[2]).getTime(), n = Math.round((day - today) / 864e5), el = li.querySelector(".gig-in");
+      if (n < 0) { past.insertBefore(li, past.firstChild); return; }
+      el.textContent = n === 0 ? "šodien" : n === 1 ? "rīt" : "pēc " + n + (n % 10 === 1 && n % 100 !== 11 ? " dienas" : " dienām");
+    });
+    document.getElementById("gigsNone").hidden = next.children.length > 0;
+    next.hidden = next.children.length === 0;
+  })();
+
+  // videos: a thumbnail opens the clip over the whole page and starts it
+  var player = null, playerFrom = null;
+  [].slice.call(document.querySelectorAll(".clip")).forEach(function (a) {
+    var img = a.querySelector("img"), id = a.dataset.yt;
+    img.addEventListener("load", function () { if (img.naturalWidth <= 120 && img.src.indexOf("hqdefault") < 0) img.src = "https://i.ytimg.com/vi/" + id + "/hqdefault.jpg"; });
+    img.addEventListener("error", function () { img.remove(); });
+    a.addEventListener("click", function (e) {
+      if (swapped || e.metaKey || e.ctrlKey || e.shiftKey) return;      // framing not possible here, or the viewer wants a new tab
+      e.preventDefault(); openPlayer(a);
+    });
+  });
+  function openPlayer(a) {
+    closePlayer(); closeBox(); playerFrom = a;
+    player = document.createElement("div"); player.className = "player"; player.setAttribute("role", "dialog"); player.setAttribute("aria-label", a.querySelector(".clip-name").textContent.trim());
+    var frame = document.createElement("div"); frame.className = "player-frame";
+    var f = document.createElement("iframe");
+    f.src = "https://www.youtube.com/embed/" + a.dataset.yt + "?autoplay=1&rel=0&playsinline=1";
+    f.title = a.querySelector(".clip-name").textContent.trim(); f.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen"; f.allowFullscreen = true;
+    frame.appendChild(f);
+    var x = document.createElement("button"); x.type = "button"; x.className = "player-close"; x.setAttribute("aria-label", "Aizvērt video");
+    x.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2l12 12M14 2L2 14" fill="none"/></svg>';
+    x.addEventListener("click", closePlayer);
+    player.addEventListener("click", function (e) { if (e.target === player) closePlayer(); });
+    player.appendChild(frame); player.appendChild(x);
+    document.getElementById("home-view").appendChild(player);
+    document.documentElement.style.overflow = "hidden"; x.focus();
+  }
+  function closePlayer() {
+    if (!player) return;
+    player.remove(); player = null; document.documentElement.style.overflow = "";
+    if (playerFrom && playerFrom.isConnected) playerFrom.focus(); playerFrom = null;
+  }
 
   // players: where another site cannot be framed, show a plain link to it instead
   var swapped = false;
@@ -1787,6 +1869,7 @@ return { pause() { if (Audio.playing) { Audio.pause(); UI.sync(); } } };
       a.appendChild(b); a.appendChild(s);
       el.textContent = ""; el.appendChild(a); el.classList.add("blocked");
     });
+    if (player) { var from = playerFrom; closePlayer(); if (from) window.open(from.href, "_blank", "noopener"); }
   }
   document.addEventListener("securitypolicyviolation", function (e) {
     if (/^(frame-src|child-src|default-src)/.test(e.effectiveDirective || e.violatedDirective || "") && /spotify|youtube/.test(e.blockedURI || "")) linksInstead();
@@ -1811,7 +1894,7 @@ return { pause() { if (Audio.playing) { Audio.pause(); UI.sync(); } } };
     if (want === onStage) return;
     onStage = want;
     if (want) {
-      homeY = window.scrollY; closeBox();
+      homeY = window.scrollY; closeBox(); closePlayer();
       home.hidden = true; stageView.hidden = false; document.body.classList.add("on-stage"); window.scrollTo(0, 0);
       if (!stage) stage = startStage();
     } else {
