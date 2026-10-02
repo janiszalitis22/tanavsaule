@@ -75,7 +75,7 @@ html:has(body.on-stage) { background: #0b0202; }
 .mark .word { display: none; }
 .band { position: absolute; left: calc(var(--u) * 0); top: calc(var(--u) * 6.4); width: calc(var(--u) * 100); max-width: none; height: auto;
  }
-.sunrise-haze { position: absolute; left: 0; right: 0; bottom: 0; height: 46%; pointer-events: none; background: linear-gradient(to bottom, rgba(195, 48, 8, 0) 0%, rgba(195, 48, 8, .5) 42%, rgba(195, 48, 8, .9) 74%, var(--bg) 100%); }
+.sunrise-haze { position: absolute; left: 0; right: 0; bottom: 0; height: 46%; pointer-events: none; background: linear-gradient(to bottom, rgba(195, 48, 8, 0) 0%, rgba(195, 48, 8, .5) 38%, rgba(195, 48, 8, .9) 64%, var(--bg) 84%, var(--bg) 100%); }
 .sunrise::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .16; mix-blend-mode: soft-light; -webkit-mask-image: linear-gradient(to bottom, #000 55%, rgba(0, 0, 0, 0) 96%); mask-image: linear-gradient(to bottom, #000 55%, rgba(0, 0, 0, 0) 96%);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1.1 -.2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
 .sunrise-foot { position: absolute; left: calc(var(--u) * 4); right: calc(var(--u) * 4); bottom: calc(var(--u) * 2.4); display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; font-size: clamp(14px, calc(var(--u) * 1.5), 24px); line-height: 1.25; }
