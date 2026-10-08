@@ -424,7 +424,7 @@ body.on-stage { background: var(--black); color: var(--white); font-family: var(
       <button class="tx" id="play" disabled>Atskaņot</button>
       <button class="tx" id="restart" disabled>No sākuma</button>
       <div class="track"><span id="tNow">0:00</span><input type="range" id="seek" min="0" max="1000" value="0" step="1" aria-label="Dziesmas pozīcija"><span id="tDur">0:00</span></div>
-      <button id="who" class="tx" style="color:var(--yellow)" title="Mainīt mūziķi (1)">Jānis</button>
+      <button id="who" class="tx" style="color:var(--yellow)" title="Mainīt mūziķi (1)">JZ</button>
     </div>
     <div class="tricks" id="tricks"></div>
   </div>
@@ -481,9 +481,9 @@ const CONFIG = {
   palette: { r1: "#ec2a1c", r2: "#a3160d", r3: "#560905", black: "#0b0202", sil: "#120304", rim: "#4a0c06", bulb: "#ffe9c4", yellow: "#ffc233",
              skyTop: "#1c0302", skyMid: "#8e1a08", horizon: "#ff6a22", floorTop: "#d8461a", floorBottom: "#f29a48" },
   members: [
-    { id: "janis",   name: "Jānis",   role: "ģitāra",          stem: "pamostos/audio/gitara_janis.mp3",   pan: 0.9, build: "guitar", dance: "duckwalk",
+    { id: "janis",   name: "JZ",      role: "ģitāra",          stem: "pamostos/audio/gitara_janis.mp3",   pan: 0.9, build: "guitar", dance: "duckwalk",
       x: 125, amp: { kind: "combo", x: 68 }, hair: "silver", hairColor: "#0b0202", moustache: "#0b0202", instrument: "#0b0202" },
-    { id: "kaspars", name: "Kaspars", role: "ģitāra, vokāls",  stem: "pamostos/audio/gitara_kaspars.mp3", pan: -0.9, build: "guitar", dance: "windmill",
+    { id: "kaspars", name: "Pizāns",  role: "ģitāra, vokāls",  stem: "pamostos/audio/gitara_kaspars.mp3", pan: -0.9, build: "guitar", dance: "windmill",
       x: 235, amp: { kind: "combo", x: 166, size: [78, 60], mic: true }, hair: "curly", hairColor: "#0b0202", moustache: "#0b0202", instrument: "#0b0202", micStand: true },
     { id: "edzus",   name: "Edžus",   role: "bungas",          stem: "pamostos/audio/bungas.mp3",         build: "drums", dance: "sticks",
       x: 380, hair: "cap", hairColor: "#0b0202", instrument: "#ec2a1c" },
