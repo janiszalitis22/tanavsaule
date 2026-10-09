@@ -850,7 +850,7 @@ const GAME = {
   ],
   found: new Set(),
   pct() { return Math.min(100, Math.round(this.chaos / this.max * 100)); },
-  score() { return this.chaos * 10 + this.found.size * 250; },        // mess made plus side quests done
+  score() { return this.chaos + this.found.size * 25; },              // exactly the +points you see pop up, plus 25 for each side quest
   fmtScore() { return this.score().toLocaleString("lv-LV").replace(/\s/g, " "); },
   title() { const p = this.pct(); let n = this.titles[0][1]; for (const [v, t] of this.titles) if (p >= v) n = t; return n; },
   add(n, x, y) { if (!Audio.playing) return; this.chaos += n; if (x !== undefined) this.pops.push({ x, y, n, t: 0 }); },
@@ -861,6 +861,7 @@ const GAME = {
     const s = this.secrets.find(q => q.id === id), c = controlled;   // the note pops up right where it happened
     if (x === undefined && c) { x = c.x; y = c.box().t - 40; }
     this.notes.push({ text: `Side quest: ${qName(s)} ✓`, x, y, t: 0 });
+    if (x !== undefined) this.pops.push({ x, y: y + 60, n: 25, t: 0 });
   },
   toast(msg) { const el = document.getElementById("toast"); el.textContent = msg; el.classList.add("on"); clearTimeout(this.toastT); this.toastT = setTimeout(() => el.classList.remove("on"), 2800); },
   reset() { this.found = new Set(); this.danceN = 0; this.chaos = 0; this.letterKicks = 0; this.fireN = 0; this.snap = null; this.snapLum = -1; this.pops = []; this.notes = []; },
@@ -2450,9 +2451,9 @@ const INFO = {
   open(kind) {
     let h;
     if (kind === "chaos") {
-      const pts = [["Nogāzt mēnesi", 20], ["Iespert pa bungām", 15], ["Apgāzt stalažas", "12 + 5×2"], ["Iespert pa kombi", 10], ["Iespert grupas biedram", 8], ["Uzlēkt kādam uz galvas", 6], ["Uzlēkt uz burta", 5], ["Iespert pa burtu uz zemes", 3], ["Mest instrumentu", 3]];
+      const pts = [["Side quest", 25], ["Nogāzt mēnesi", 20], ["Iespert pa bungām", 15], ["Apgāzt stalažas", "12 + 5×2"], ["Iespert pa kombi", 10], ["Iespert grupas biedram", 8], ["Uzlēkt kādam uz galvas", 6], ["Uzlēkt uz burta", 5], ["Iespert pa burtu uz zemes", 3], ["Mest instrumentu", 3]];
       const p = GAME.pct(), cur = GAME.title();
-      h = `<h2 id="infoTitle">Bardaks</h2><p>Cik pamatīgi tu izjauc skatuvi dziesmas laikā. Par katru nedarbu krājas punkti, un beigās tu saņem titulu. Šobrīd: <b style="color:var(--yellow)">${p}%</b>.</p>
+      h = `<h2 id="infoTitle">Bardaks</h2><p>Cik pamatīgi tu izjauc skatuvi dziesmas laikā. Katrs nedarbs dod punktus tavā score, un beigās pēc Bardaka tu saņem titulu. Šobrīd: <b style="color:var(--yellow)">${p}%</b>.</p>
         <h3>Punkti</h3><ul>${pts.map(([a, b]) => `<li><span>${a}</span><b>+${b}</b></li>`).join("")}</ul>
         <h3>Tituli</h3><ul>${GAME.titles.map(([v, t]) => `<li class="${t === cur ? "now" : ""}"><span>${t}</span><b>${v}%</b></li>`).join("")}</ul>`;
     }
