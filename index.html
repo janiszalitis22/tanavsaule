@@ -921,8 +921,10 @@ class Cable {
   reset(a) { this.plugged = true; this.pts.forEach((p, i) => { const t = i / (this.n - 1); p.x = lerp(a.x, this.input.x, t); p.y = Math.min(FLOOR - 3, lerp(a.y, this.input.y, t) + Math.sin(t * Math.PI) * 80); this.prev[i].x = p.x; this.prev[i].y = p.y; }); }
   update(dt, a) {
     const n = this.n, P = this.pts, Q = this.prev, d = Math.hypot(a.x - this.input.x, a.y - this.input.y);
-    if (this.plugged && d > this.len * 1.02) { this.plugged = false; FX.sparks(this.input.x, this.input.y, 18); GAME.add(4, this.input.x, this.input.y - 30); }
-    else if (!this.plugged && d < 95) { this.plugged = true; FX.sparks(this.input.x, this.input.y, 10); }
+    // endless cable: it pays out as far as you go and never pulls out; only a kicked amp unplugs it
+    this.len = Math.max(CONFIG.cableLength, d * 1.08, this.len * (1 - dt * 0.5)); this.seg = this.len / (n - 1);
+    const amp = this.owner.cfg.amp;
+    if (!this.plugged && d < 95 && !(amp && amp.fly)) { this.plugged = true; FX.sparks(this.input.x, this.input.y, 10); }
     const g = G * 0.5 * dt * dt;
     for (let i = 1; i < n; i++) {
       if (i === n - 1 && this.plugged) continue;
@@ -1176,7 +1178,8 @@ class Musician {
     for (const m of CONFIG.members) {                    // kick an amp: it flies
       const a = m.amp; if (!a || a.fly) continue; const [w, h] = (a.size || AMP_SIZE[a.kind]);
       if (!hits(a.x - w / 2, a.x + w / 2, FLOOR - h, FLOOR)) continue;
-      a.fly = { x: a.x, y: FLOOR, vx: d * rnd(700, 1000), vy: rnd(-900, -650), rot: 0, vr: d * rnd(4, 8), rest: false }; a.box.gone = true; SFX.amp(); GAME.add(10, a.x, FLOOR - h - 20);
+      a.fly = { x: a.x, y: FLOOR, vx: d * rnd(700, 1000), vy: rnd(-900, -650), rot: 0, vr: d * rnd(4, 8), rest: false }; a.box.gone = true;
+      { const o = figures.find(x => x.cfg === m); if (o && o.cable && o.cable.plugged) { o.cable.plugged = false; FX.sparks(a.input.x, a.input.y, 18); } }   // the lead pops out SFX.amp(); GAME.add(10, a.x, FLOOR - h - 20);
       FX.sparks(a.x, FLOOR - h / 2, 10);
     }
     for (const l of SIGN.letters) {                       // kick a letter lying on the floor: off it goes
@@ -2301,7 +2304,7 @@ const INFO = {
   open(kind) {
     let h;
     if (kind === "chaos") {
-      const pts = [["Nogāzt mēnesi", 20], ["Iespert pa bungām", 15], ["Apgāzt stalažas", "12 + 5×2"], ["Iespert pa kombi", 10], ["Iespert grupas biedram", 8], ["Uzlēkt kādam uz galvas", 6], ["Uzlēkt uz burta", 5], ["Izraut kabeli", 4], ["Iespert pa burtu uz zemes", 3], ["Mest instrumentu gaisā", 3]];
+      const pts = [["Nogāzt mēnesi", 20], ["Iespert pa bungām", 15], ["Apgāzt stalažas", "12 + 5×2"], ["Iespert pa kombi", 10], ["Iespert grupas biedram", 8], ["Uzlēkt kādam uz galvas", 6], ["Uzlēkt uz burta", 5], ["Iespert pa burtu uz zemes", 3], ["Mest instrumentu gaisā", 3]];
       const p = GAME.pct(), cur = GAME.title();
       h = `<h2 id="infoTitle">Bardaks</h2><p>Cik pamatīgi tu izjauc skatuvi dziesmas laikā. Par katru nedarbu krājas punkti, un beigās tu saņem titulu. Šobrīd: <b style="color:var(--yellow)">${p}%</b>.</p>
         <h3>Punkti</h3><ul>${pts.map(([a, b]) => `<li><span>${a}</span><b>+${b}</b></li>`).join("")}</ul>
