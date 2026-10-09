@@ -1738,6 +1738,11 @@ function drawBackdrop(c) {
     const g = c.createRadialGradient(I.x, I.y, 0, I.x, I.y, 72); g.addColorStop(0, "rgba(255,106,34,.85)"); g.addColorStop(0.55, "rgba(255,106,34,.6)"); g.addColorStop(1, "rgba(255,106,34,0)");
     c.fillStyle = g; c.fillRect(I.x - 72, I.y - 72, 144, 144);
   }
+  if (Audio.started && drummer && !drummer.inst.held) for (const d of FX.debris) {
+    if (!d.stick || d.y > FLOOR - 220) continue;
+    const g = c.createRadialGradient(d.x, d.y, 0, d.x, d.y, 56); g.addColorStop(0, "rgba(255,106,34,.8)"); g.addColorStop(0.55, "rgba(255,106,34,.55)"); g.addColorStop(1, "rgba(255,106,34,0)");
+    c.fillStyle = g; c.fillRect(d.x - 56, d.y - 56, 112, 112);
+  }
   // up high the wall is dark: give a raised musician's spot the same orange glow behind him as on the stage
   figures.forEach((f, i) => {
     const on = (Light.spots[i] || 0) * (f.awake ? 1 : 0.35), hgt = FLOOR - 62 * f.k - spotY[i];
@@ -1884,6 +1889,7 @@ function drawLighting(t, beat, dt0 = 0.016) {
   });
   const disc = (x, y, rad, a, core) => { const g = mctx.createRadialGradient(x, y, 0, x, y, rad); g.addColorStop(0, `rgba(255,255,255,${a})`); g.addColorStop(core, `rgba(255,255,255,${a})`); g.addColorStop(1, "rgba(255,255,255,0)"); mctx.fillStyle = g; mctx.fillRect(x - rad, y - rad, rad * 2, rad * 2); };
   for (const f of figures) { const I = f.inst; if (!f.isDrummer && !I.held && Audio.started) disc(I.x, I.y, 72, 0.95, 0.55); }
+  if (Audio.started && drummer && !drummer.inst.held) for (const d of FX.debris) if (d.stick) disc(d.x, d.y, 56, 0.9, 0.5);   // and on Edžus's sticks while they fly
   for (const q of spots) {
     disc(q.x, q.y, q.r, q.on, 0.72);
     // floor reflection of the spot: the higher the musician, the fainter and blurrier it gets
