@@ -255,14 +255,21 @@ body.on-stage { background: var(--black); color: var(--white); font-family: var(
 .tx:disabled { opacity: .35; cursor: default; }
 .track { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; font-variant-numeric: tabular-nums; letter-spacing: 0; }
 #seek { flex: 1; min-width: 0; accent-color: var(--yellow); height: 16px; cursor: pointer; }
-.tricks { display: flex; gap: 6px 20px; flex-wrap: wrap; justify-content: center; }
+.tricks { display: flex; gap: 8px 8px; flex-wrap: wrap; justify-content: center; align-items: center; }
 .trick, .keyhint { font: inherit; letter-spacing: inherit; text-transform: inherit; color: var(--muted); background: none; border: 0; padding: 4px 0; white-space: nowrap; }
+.trick { color: var(--white); border: 1.5px solid var(--line); border-radius: 999px; padding: 7px 14px 6px; background: rgba(11, 2, 2, .35); transition: border-color .15s, background .15s; }
+.trick:hover, .trick.flash { border-color: var(--yellow); background: rgba(255, 194, 51, .12); }
+.trick:active { background: var(--yellow); color: var(--black); }
+.trick:active i { color: var(--black); }
 .trick { cursor: pointer; }
 .trick:hover, .trick.flash { color: var(--white); }
 .trick i, .keyhint i { font-style: normal; color: var(--yellow); margin-right: 6px; }
 .pad { position: absolute; right: 16px; display: none; grid-template-columns: repeat(2, 56px); gap: 8px; }
-.pad button { width: 56px; height: 56px; border: 0; background: none; color: var(--muted); font-size: 26px; touch-action: none; user-select: none; -webkit-user-select: none; }
-.pad button.down { color: var(--yellow); }
+.pad button { width: 56px; height: 56px; border: 1.5px solid rgba(255, 247, 234, .55); border-radius: 50%; background: rgba(11, 2, 2, .55); color: var(--white); font-size: 20px; line-height: 1; touch-action: none; user-select: none; -webkit-user-select: none; box-shadow: 0 4px 14px rgba(0, 0, 0, .45); }
+.pad button.down { background: var(--yellow); border-color: var(--yellow); color: var(--black); }
+.pad.nudge button { animation: pad-nudge 1s ease-in-out 3; }
+@keyframes pad-nudge { 0%, 100% { transform: scale(1); box-shadow: 0 4px 14px rgba(0, 0, 0, .45), 0 0 0 0 rgba(255, 194, 51, 0); } 45% { transform: scale(1.14); border-color: var(--yellow); box-shadow: 0 4px 14px rgba(0, 0, 0, .45), 0 0 0 10px rgba(255, 194, 51, .28); } }
+@media (prefers-reduced-motion: reduce) { .pad.nudge button { animation: none; border-color: var(--yellow); } }
 .touch .pad { display: grid; }
 .pad-left { left: 16px; right: auto; }
 
@@ -647,12 +654,16 @@ function buildSign() {
       let top = h; for (let py = 0; py < h && top === h; py++) for (let px = 0; px < w; px++) if (img[(py * w + px) * 4 + 3] > 40) { top = py; break; }
       cx.clearRect(0, 0, w, h); cx.lineWidth = size > 60 ? 3 : 2; cx.strokeStyle = C.rim; cx.strokeText(chr, 10, oy); cx.fillStyle = C.sil; cx.fillText(chr, 10, oy);
       const y = row.y - oy;
-      const L = { chr, c, w, h, x, y, top, bulbs, br: row.br, phase: idx++ * 0.8, swing: 0, swingV: 0, lit: [], fallen: false, fallT: 0 };
+      const L = { chr, c, w, h, x, y, top, bulbs, br: row.br, phase: idx++ * 0.8, swing: 0, swingV: 0, lit: [], fallen: false, fallT: 0, big: row.word === SIGN.word, rising: null };
       L.plat = addP(x + 12, x + w - 12, y + top + 4, "letter", { letter: L }); SIGN.letters.push(L);
       x += widths[i] + gap;
     });
   }
 }
+SIGN.raise = () => {                                         // every fallen PAMOSTOS letter goes back up, one after another
+  let n = 0;
+  for (const l of SIGN.letters) if (l.big && l.fallen && !l.rising) l.rising = { t: -n++ * 0.12, dur: 1.5, x0: l.cx, y0: l.cy, r0: l.rot };
+};
 let KICK = null;
 function buildKick() {
   const c = document.createElement("canvas"); c.width = c.height = 200; const x = c.getContext("2d");
@@ -686,6 +697,15 @@ for (let i = 0; i < 5; i++) {                          // scaffolds up to the tr
   addP(6 + o, 96 + o, t, "scaf"); addP(W - 96 - o, W - 6 - o, t, "scaf");
 }
 addP(0, W, TRUSS, "truss");
+// chorus stunt: on every fire cue JZ and Elīna climb the scaffolds, leap onto the PAMOSTOS letters and run across them,
+// so the first letter drops exactly as the fire goes off and the rest follow. Letters are hauled back up before each one.
+const STUNT = {
+  lead: 10,                                                  // seconds before the cue they start climbing
+  crew: {
+    janis: { launch: { x: 84, y: FLOOR - 390 }, dir: 1, order: [0, 1, 2, 3] },      // left scaffold → P A M O
+    elina: { launch: { x: 676, y: FLOOR - 390 }, dir: -1, order: [7, 6, 5, 4] },    // right scaffold → S O T S
+  },
+};
 const SURFACES = platforms.filter(p => p.kind !== "kit" && p.kind !== "riser").concat([{ l: 60, r: W - 60, t: FLOOR, kind: "floor" }]);
 function surfaceUnder(x, y) {
   let best = FLOOR;
@@ -763,6 +783,12 @@ function updateProps(dt) {
     a.input.x = F.x + a.inOff.x * c - a.inOff.y * sn; a.input.y = F.y + a.inOff.x * sn + a.inOff.y * c;
   }
   for (const l of SIGN.letters) {
+    if (l.rising) {                                          // hauled back up on the ropes
+      const R = l.rising; R.t += dt; const k = clamp(R.t / R.dur, 0, 1), e = k * k * (3 - 2 * k);
+      l.cx = lerp(R.x0, l.x + l.w / 2, e); l.cy = lerp(R.y0, l.y + l.h / 2, e) - Math.sin(e * Math.PI) * 40; l.rot = lerp(R.r0, 0, e);
+      if (k >= 1) { l.rising = null; l.fallen = false; l.rest = false; l.fallT = 0; l.plat.gone = false; l.swing = (Math.random() < 0.5 ? -1 : 1) * 0.06; l.swingV = 0; }
+      continue;
+    }
     if (l.fallT > 0 && !l.fallen) { l.fallT -= dt; if (l.fallT <= 0) { l.fallen = true; l.plat.gone = true; l.cx = l.x + l.w / 2; l.cy = l.y + l.h / 2; l.vx = rnd(-80, 80); l.vy = 0; l.rot = 0; l.vr = rnd(-1.6, 1.6); FX.sparks(l.cx, l.y + l.top, 12); SFX.sparks(0.2); } }
     if (!l.fallen || l.rest) continue;
     l.vy += G * dt; l.cx += l.vx * dt; l.cy += l.vy * dt; l.rot += l.vr * dt;
@@ -871,7 +897,7 @@ const FX = {
     this.parts = this.parts.filter(p => p.life > 0);
     for (const d of this.debris) {
       if (d.rest) continue;
-      d.vy += G * dt; d.x += d.vx * dt; d.y += d.vy * dt; d.rot += d.vr * dt;
+      d.vy += G * (d.g || 1) * dt; d.x += d.vx * dt; d.y += d.vy * dt; d.rot += d.vr * (d.g ? 0.45 : 1) * dt;
       const ground = d.x > RISER.l && d.x < RISER.r ? RISER.t : FLOOR;
       const rad = d.r || 4; if (d.y > ground - rad) { if (d.vy > 250) SFX.drumBit(d.stick ? "stick" : d.part.kind); d.y = ground - rad; d.vy *= -0.3; d.vx *= 0.6; d.vr *= 0.5; if (Math.abs(d.vy) < 60) { d.vy = 0; d.rest = Math.abs(d.vx) < 20; } }
       if (d.x < -EDGE || d.x > W + EDGE) d.vx *= -1;
@@ -916,6 +942,7 @@ class Musician {
     this.onGround = true; this.standOn = null; this.crouch = 0; this.seat = this.isDrummer ? 1 : 0; this.dropT = 0;
     this.knockT = 0; this.knockAmt = 0; this.dragged = false; this.touched = false; this.inst.held = true;
     this.ai.goal = null; this.ai.idle = rnd(1, 4);
+    this.stuntCue = null; this.stuntStep = 0; this.stuntDone = false; this.stuntPlat = null; this.stuntAim = null;
   }
   get lie() { return Math.max(this.s, this.knockAmt); }
   get connected() { return this.cable ? this.cable.plugged : this.atKit() && !KIT.muted; }
@@ -943,7 +970,7 @@ class Musician {
       if (f === this || f.dragged) continue; const b = f.box();
       if (!hits(b.l, b.r, b.t, b.b)) continue;
       f.knock(d); f.touched = true; f.vx = d * 420; f.vy = -420; f.onGround = false; SFX.body();
-      if (f.inst.held && f.awake) { if (f.isDrummer) f.throwInst(); else { const I = f.inst, j = f.jackWorld || { x: f.x, y: f.y - 60 }; I.held = false; I.age = 0; I.x = j.x; I.y = j.y - 10; I.vx = d * rnd(550, 850); I.vy = rnd(-800, -600); I.vr = d * rnd(8, 16); } }
+      if (f.inst.held && f.awake) { if (f.isDrummer) f.throwInst(); else { const I = f.inst, j = f.jackWorld || { x: f.x, y: f.y - 60 }; I.held = false; I.age = 0; I.g = 1; I.x = j.x; I.y = j.y - 10; I.vx = d * rnd(550, 850); I.vy = rnd(-800, -600); I.vr = d * rnd(8, 16); } }
       FX.sparks(f.x, f.y - 60, 8);
     }
     for (const m of CONFIG.members) {                    // kick an amp: it flies
@@ -962,10 +989,11 @@ class Musician {
   throwInst(up = false) {                                   // up = toss it high into the air, it spins and crashes down
     if (!this.inst.held || !this.awake || this.knockT > 0) return;
     const I = this.inst; I.held = false; I.age = 0; I.landed = false; this.danceT = 0;
-    const vx = () => up ? rnd(-90, 90) : (Math.random() < 0.5 ? -1 : 1) * rnd(450, 800), vy = () => up ? rnd(-1750, -1550) : rnd(-900, -650);
-    if (this.isDrummer) { I.regrow = up ? 3.2 : 2.6; for (const sx of [-1, 1]) FX.debris.push({ stick: true, x: this.x + sx * 12, y: this.y - 110, vx: up ? sx * rnd(20, 80) : sx * rnd(200, 420), vy: vy(), rot: 0, vr: rnd(-20, 20), rest: false }); return; }
+    const vx = () => up ? rnd(-60, 60) : (Math.random() < 0.5 ? -1 : 1) * rnd(450, 800), vy = () => up ? rnd(-980, -900) : rnd(-900, -650);
+    const lift = up ? 0.3 : 1;                               // tossed up: drifts slowly, hangs in the air about twice as long
+    if (this.isDrummer) { I.regrow = up ? 4.6 : 2.6; for (const sx of [-1, 1]) FX.debris.push({ stick: true, g: lift, x: this.x + sx * 12, y: this.y - 110, vx: up ? sx * rnd(15, 50) : sx * rnd(200, 420), vy: vy(), rot: 0, vr: rnd(-20, 20), rest: false }); return; }
     const j = this.jackWorld || { x: this.x, y: this.y - 60 };
-    I.x = j.x; I.y = j.y - 20; I.vx = vx(); I.vy = vy(); I.rot = 0; I.vr = (up ? 1 : 0.6) * rnd(12, 20) * (Math.random() < 0.5 ? -1 : 1);
+    I.x = j.x; I.y = j.y - 20; I.vx = vx(); I.vy = vy(); I.rot = 0; I.g = lift; I.vr = (up ? rnd(4.5, 7) : 0.6 * rnd(12, 20)) * (Math.random() < 0.5 ? -1 : 1);
   }
 
   // ---- decisions: the player, or the musician's own little brain ----
@@ -977,10 +1005,12 @@ class Musician {
       if (o.jump && this.onGround) input.jumpBuf = 0;
       if (o.l || o.r || o.jump || o.down) this.touched = true;       // the player moved him: the drummer stays wherever he is taken
       if ((o.l || o.r || o.jump) && !this.awake) this.setAwake(true);
+      this.stuntPlat = null; this.stuntAim = null;
       return o;
     }
-    if (this.isDrummer || !this.awake || this.knockT > 0 || this.dragged || !Audio.playing) return o;
+    if (this.isDrummer || !this.awake || this.knockT > 0 || this.dragged || !Audio.playing) { this.stuntPlat = null; this.stuntAim = null; return o; }
     const A = this.ai;
+    const so = this.stunt(o, Audio.time()); if (so) return so;
     // Kaspars goes to his mic stand whenever he has a line to sing (a moment early), and stays there
     if (this.cfg.micStand && this.inst.held) {
       const at = Audio.time(), sing = CONFIG.cues.kasparsSings.some(([a, b]) => at >= a - 1.5 && at < b);
@@ -1026,6 +1056,37 @@ class Musician {
     if (A.stuck > 1.5) { A.goal = null; A.idle = rnd(5, 10); A.stuck = 0; }
     return o;
   }
+  stunt(o, at) {                                             // returns the moves while the stunt drives, or null to let the usual brain run
+    const S = STUNT.crew[this.cfg.id]; if (!S || !SIGN.letters.length || !this.inst.held) return null;
+    const F = CONFIG.cues.fire.find(f => at >= f - STUNT.lead && at < f + 4);
+    if (F === undefined) { if (this.stuntCue !== null) { this.stuntCue = null; this.stuntPlat = null; this.stuntAim = null; } return null; }
+    if (this.stuntCue !== F) { this.stuntCue = F; this.stuntStep = 0; this.stuntDone = false; this.stuntPlat = null; this.stuntAim = null; }
+    if (this.stuntDone) return null;
+    const big = SIGN.letters.filter(l => l.big), seq = S.order.map(i => big[i]).filter(Boolean);
+    const ok = l => l && !l.fallen && !(l.fallT > 0) && !l.rising;
+    const A = this.ai;
+    if (this.stuntStep === 0) {                              // get up to the launch spot, wait, then leap
+      const first = seq[0]; if (!first || at > F + 0.3) { this.stuntDone = true; return null; }
+      const p = first.plat, T = (JUMP + Math.sqrt(JUMP * JUMP + 2 * G * Math.max(0, p.t - S.launch.y))) / G;
+      const ready = this.onGround && Math.abs(this.y - S.launch.y) < 3 && Math.abs(this.x - S.launch.x) < 16;
+      if (ready) {
+        A.goal = null; A.idle = 1; this.face = S.dir;
+        if (at >= F - 0.2 - T && ok(first)) { o.jump = true; this.stuntStep = 1; this.stuntPlat = p; this.stuntAim = { x: (p.l + p.r) / 2, y: p.t }; }
+        return o;
+      }
+      A.goal = { x: S.launch.x, y: S.launch.y }; A.moveT = 99;     // climb with the usual platform-hopping walker
+      return null;
+    }
+    if (this.onGround) {                                     // landed: hop on to the next letter before this one drops
+      const cur = seq[this.stuntStep - 1], next = seq[this.stuntStep];
+      if (cur && Math.abs(this.y - cur.plat.t) < 3 && ok(next)) {
+        o.jump = true; this.stuntPlat = next.plat; this.stuntAim = { x: (next.plat.l + next.plat.r) / 2, y: next.plat.t }; this.stuntStep++; return o;
+      }
+      this.stuntDone = true; this.stuntPlat = null; this.stuntAim = null; A.goal = null; A.idle = rnd(1, 2);
+      return null;
+    }
+    o.aim = this.stuntAim; return o;
+  }
   pickGoal() {
     const reach = p => !this.cable || !this.cable.plugged || Math.hypot(p.x - this.cable.input.x, p.y - 60 - this.cable.input.y) < this.cable.len * 0.78;
     for (let tries = 0; tries < 10; tries++) {
@@ -1057,6 +1118,10 @@ class Musician {
     if (target) this.face = Math.sign(target);
     this.kickT = Math.max(0, this.kickT - dt);
     if (o.jump && this.onGround && can) { this.vy = -JUMP; this.onGround = false; }
+    if (o.aim && !this.onGround) {                            // stunt leap: steer so the landing is on the aimed letter
+      const qa = 0.5 * G, qb = this.vy, qc = this.y - o.aim.y, disc = qb * qb - 4 * qa * qc;
+      if (disc >= 0) { const tl = (-qb + Math.sqrt(disc)) / (2 * qa); if (tl > 0.03) { this.vx = clamp((o.aim.x - this.x) / tl, -WALK * 1.8, WALK * 1.8); if (Math.abs(this.vx) > 5) this.face = Math.sign(this.vx); } }
+    }
     if (o.drop && this.onGround && this.y < FLOOR - 1 && can) { this.dropT = 0.22; this.y += 3; this.onGround = false; this.crouch = 0; }
     this.dropT = Math.max(0, this.dropT - dt);
     if (this.isDrummer) {
@@ -1085,7 +1150,7 @@ class Musician {
     if (vIn >= 0 && this.dropT <= 0) {
       const boss = this === controlled;                 // only the musician you control can wreck the stage
       for (const p of platforms) {
-        if (p.gone || (p.kind === "kit" && this.isDrummer) || (p.kind === "letter" && !boss)) continue;
+        if (p.gone || (this.stuntPlat && p !== this.stuntPlat) || (p.kind === "kit" && this.isDrummer) || (p.kind === "letter" && !this.stuntPlat && !boss)) continue;   // mid-stunt only the aimed letter counts
         if (this.x > p.l - 4 && this.x < p.r + 4 && prevB <= p.t + 2 && this.y >= p.t) {
           this.y = p.t; this.vy = 0; this.onGround = true;
           if (p.kind === "kit" && vIn > 250 && boss) knockKitPart(this.x);
@@ -1109,7 +1174,7 @@ class Musician {
     const I = this.inst; if (I.held) return;
     I.age += dt;
     if (this.isDrummer) { I.regrow -= dt; if (I.regrow <= 0) I.held = true; return; }
-    const prevY = I.y; I.vy += G * dt; I.x += I.vx * dt; I.y += I.vy * dt; I.rot += I.vr * dt;
+    const prevY = I.y; I.vy += G * (I.g || 1) * dt; I.x += I.vx * dt; I.y += I.vy * dt; I.rot += I.vr * dt;
     if (I.x < -EDGE || I.x > W + EDGE) { I.vx *= -0.6; I.x = clamp(I.x, -EDGE, W + EDGE); }
     if (I.vy > 0) {
       let ground = FLOOR;
@@ -1468,7 +1533,7 @@ function drawSign(c, t, beat, bright, chaseMode) {
     const px = l.x + l.w / 2;
     const m = l.fallen ? new DOMMatrix().translate(l.cx, l.cy).rotate(l.rot * 57.3).translate(-l.w / 2, -l.h / 2)
                        : new DOMMatrix().translate(px, TRUSS + 38).rotate(ang * 57.3).translate(-l.w / 2, l.y - TRUSS - 38);
-    if (!l.fallen) {
+    if (!l.fallen || l.rising) {
       const a1 = m.transformPoint(new DOMPoint(l.w * 0.28, l.top)), a2 = m.transformPoint(new DOMPoint(l.w * 0.72, l.top));
       c.beginPath(); c.moveTo(px - l.w * 0.22, TRUSS + 38); c.lineTo(a1.x, a1.y); c.moveTo(px + l.w * 0.22, TRUSS + 38); c.lineTo(a2.x, a2.y); c.stroke();
     }
@@ -1585,7 +1650,7 @@ const byId = id => figures.find(f => f.cfg.id === id);
 function placeAll() {                                     // put the whole stage back together
   for (const m of CONFIG.members) if (m.amp) { m.amp.fly = null; m.amp.box.gone = false; Object.assign(m.amp.input, m.amp.home); }
   KIT_PARTS.forEach(p => p.on = true); FX.debris = []; KIT.gone = false; KIT.muted = false;
-  for (const l of SIGN.letters) { l.fallen = false; l.fallT = 0; l.rest = false; l.plat.gone = false; l.swing = 0; l.swingV = 0; }
+  for (const l of SIGN.letters) { l.fallen = false; l.fallT = 0; l.rest = false; l.plat.gone = false; l.swing = 0; l.swingV = 0; l.rising = null; }
   figures.forEach(f => { f.reset(); f.setAwake(true); f.animate(0.016, 0, 0); });
   figures.forEach(f => { if (f.cable) f.cable.reset(f.jackWorld); });
 }
@@ -1624,7 +1689,7 @@ const UI = {
   btns: [],
   build() {
 
-    const hint = document.createElement("span"); hint.className = "keyhint"; hint.innerHTML = "<i>← →</i>iet <i style='margin-left:10px'>↑</i>lēkt <i style='margin-left:10px'>↓</i>tupties"; $("tricks").appendChild(hint);
+    const hint = document.createElement("span"); hint.className = "keyhint"; hint.innerHTML = "<i>← →</i>iet <i style='margin-left:10px'>↓</i>tupties"; $("tricks").appendChild(hint);
     TRICKS.forEach(tr => {
       const b = document.createElement("button"); b.className = "trick"; b.id = "trick-" + tr.key;
       b.addEventListener("click", () => { runTrick(tr); }); $("tricks").appendChild(b); this.btns.push([b, tr]);
@@ -1705,6 +1770,7 @@ $("start").addEventListener("click", async () => {
   catch (err) { $("start").textContent = "Neizdevās"; $("loadText").textContent = "Šis pārlūks neatskaņoja dziesmu. Pamēģini citā pārlūkā vai atjauno lapu."; return; }
   $("tDur").textContent = fmt(Audio.duration); $("play").disabled = false; $("restart").disabled = false;
   Audio.play(0); UI.sync(); $("gate").classList.add("gone"); SIGN.powerT = 0;
+  if (isTouch) document.querySelectorAll(".pad").forEach(p => { p.classList.add("nudge"); setTimeout(() => p.classList.remove("nudge"), 3200); });
 });
 (document.fonts ? document.fonts.load("400 88px Bungee").then(() => document.fonts.ready) : Promise.resolve()).catch(() => {}).then(() => { buildSign(); buildKick(); });
 
@@ -1728,6 +1794,7 @@ function frame(now) {
   }
   if (at < CONFIG.cues.confetti - 1 && Confetti.bits.length) Confetti.clear();   // seeking back before the last chorus
   Confetti.update(dt, t);
+  if (Audio.playing && CONFIG.cues.fire.some(f => at >= f - STUNT.lead - 2 && at < f - 1.6) && SIGN.letters.some(l => l.big && l.fallen && !l.rising)) SIGN.raise();
   lastAt = at;
 
   // cues
