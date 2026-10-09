@@ -1869,9 +1869,7 @@ function stemOn(f) {
 const TRICKS = [
   { key: "1", label: "Spert", run: () => controlled && controlled.kick() },
   { key: "2", label: "Deja", run: () => controlled && controlled.dance() },
-  { key: "3", label: "Uguņi pa kreisi", run: () => { FX.fire("left"); if (GAME.fireN++ < 12) GAME.add(1); } },
-  { key: "4", label: "Uguņi pa labi", run: () => { FX.fire("right"); if (GAME.fireN++ < 12) GAME.add(1); } },
-  { key: "5", label: () => controlled && controlled.isDrummer ? "Mest stikus gaisā" : controlled && controlled.cfg.build === "vocal" ? "Mest mikrofonu gaisā" : "Mest ģitāru gaisā", run: () => { if (controlled && controlled.inst.held && controlled.awake) { controlled.throwInst(true); GAME.add(3); } } },
+  { key: "3", label: () => controlled && controlled.isDrummer ? "Mest stikus gaisā" : controlled && controlled.cfg.build === "vocal" ? "Mest mikrofonu gaisā" : "Mest ģitāru gaisā", run: () => { if (controlled && controlled.inst.held && controlled.awake) { controlled.throwInst(true); GAME.add(3); } } },
   { key: "0", label: "Atjaunot skatuvi", run: () => placeAll() },     // full reset: musicians, amps, drums, letters
 ];
 // 0: everyone back in place and every instrument playing again; the wrecked stage stays wrecked
@@ -1970,7 +1968,7 @@ const INFO = {
   open(kind) {
     let h;
     if (kind === "chaos") {
-      const pts = [["Iespert pa bungām", 15], ["Apgāzt stalažas", "12 + 5×2"], ["Iespert pa kombi", 10], ["Iespert grupas biedram", 8], ["Uzlēkt kādam uz galvas", 6], ["Uzlēkt uz burta", 5], ["Izraut kabeli", 4], ["Iespert pa burtu uz zemes", 3], ["Mest instrumentu gaisā", 3], ["Uguņi", 1]];
+      const pts = [["Iespert pa bungām", 15], ["Apgāzt stalažas", "12 + 5×2"], ["Iespert pa kombi", 10], ["Iespert grupas biedram", 8], ["Uzlēkt kādam uz galvas", 6], ["Uzlēkt uz burta", 5], ["Izraut kabeli", 4], ["Iespert pa burtu uz zemes", 3], ["Mest instrumentu gaisā", 3]];
       const p = GAME.pct(), cur = GAME.title();
       h = `<h2 id="infoTitle">Bardaks</h2><p>Cik pamatīgi tu izjauc skatuvi dziesmas laikā. Par katru nedarbu krājas punkti, un beigās tu saņem titulu. Šobrīd: <b style="color:var(--yellow)">${p}%</b>.</p>
         <h3>Punkti</h3><ul>${pts.map(([a, b]) => `<li><span>${a}</span><b>+${b}</b></li>`).join("")}</ul>
