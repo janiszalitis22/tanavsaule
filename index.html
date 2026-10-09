@@ -1680,12 +1680,9 @@ function drawBackdrop(c) {
   const wall = c.createLinearGradient(0, -150, 0, FLOOR);
   wall.addColorStop(0, C.skyTop); wall.addColorStop(0.55, C.skyMid); wall.addColorStop(1, C.horizon);
   c.fillStyle = wall; c.fillRect(-1500, -600, W + 3000, FLOOR + 600);
-  if (typeof BIRDS !== "undefined") for (const b of BIRDS) {      // each bird sits in a little pool of warm light
-    if (b.st === "away") continue;
-    const r = 46, y = b.y - 10, g = c.createRadialGradient(b.x, y, 0, b.x, y, r);
-    g.addColorStop(0, "rgba(255,120,40,.85)"); g.addColorStop(0.45, "rgba(255,106,34,.45)"); g.addColorStop(1, "rgba(255,106,34,0)");
-    c.fillStyle = g; c.fillRect(b.x - r, y - r, r * 2, r * 2);
-  }
+  { const band = c.createLinearGradient(0, TRUSS - 150, 0, TRUSS + 6);   // a faint warm glow along the top of the truss: the birds read against it
+    band.addColorStop(0, "rgba(255,106,34,0)"); band.addColorStop(0.7, "rgba(255,106,34,.32)"); band.addColorStop(1, "rgba(255,130,50,.55)");
+    c.fillStyle = band; c.fillRect(-1500, TRUSS - 150, W + 3000, 156); }
   // up high the wall is dark: give a raised musician's spot the same orange glow behind him as on the stage
   figures.forEach((f, i) => {
     const on = (Light.spots[i] || 0) * (f.awake ? 1 : 0.35), hgt = FLOOR - 62 * f.k - spotY[i];
@@ -1837,7 +1834,9 @@ function drawLighting(t, beat) {
     const hgt = Math.max(0, FLOOR - (q.y + 62)), fade = clamp(1 - hgt / 320, 0, 1);
     if (fade > 0.02) disc(q.x, 2 * FLOOR - q.y, q.r * (1 + hgt / 260), 0.8 * q.on * fade * fade, 0.55 * fade);
   }
-  for (const b of BIRDS) if (b.st !== "away") disc(b.x, b.y - 10, 50, 0.9, 0.4);   // the birds' own little pools of light
+  { mctx.setTransform(view); const g = mctx.createLinearGradient(0, TRUSS - 150, 0, TRUSS + 6);   // light the truss-top band
+    g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(0.7, "rgba(255,255,255,.55)"); g.addColorStop(1, "rgba(255,255,255,.75)");
+    mctx.fillStyle = g; mctx.fillRect(-1500, TRUSS - 150, W + 3000, 156); }
   for (const l of SIGN.letters) for (const [x, y, on] of l.lit) { mctx.globalAlpha = on * 0.6; mctx.drawImage(GLOW_WHITE, x - 16, y - 16, 32, 32); }
   for (const p of FX.parts) { mctx.globalAlpha = clamp(p.life / p.max, 0, 1); const s = p.kind === "fire" ? p.size * 2.4 : 40; mctx.drawImage(GLOW_WHITE, p.x - s / 2, p.y - s / 2, s, s); }
   mctx.globalAlpha = 1; mctx.globalCompositeOperation = "source-over";
