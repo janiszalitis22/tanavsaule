@@ -1185,6 +1185,10 @@ class Musician {
       s.hits++; s.wob = 0.035 + s.hits * 0.012; SFX.body(); FX.sparks(clamp(this.x + d * 40, s.l, s.r), this.y - 60, 6); GAME.add(2, (s.l + s.r) / 2, this.y - 150);
       if (s.hits >= 5) { s.fall = d; s.va = 0.5; s.plats.forEach(p => p.gone = true); SFX.amp(); GAME.add(12, (s.l + s.r) / 2, this.y - 200); GAME.secret("scaffold"); }
     }
+    if ((MOON.st === "down" || MOON.st === "roll") && hits(MOON.x - MOON.r, MOON.x + MOON.r, MOON.y - MOON.r, MOON.y + MOON.r)) {   // kick the fallen moon
+      const M = MOON; M.st = "roll"; M.vx = d * rnd(650, 850); M.vy = rnd(-1050, -850); M.vr = d * rnd(6, 10);
+      FX.sparks(M.x, M.y, 12); SFX.amp(); GAME.add(5, M.x, M.y - M.r - 30);
+    }
     if (!KIT.gone && hits(KIT_X - 90, KIT_X + 90, RISER.t - 130, RISER.t + 4)) {   // kick the drums: the kit flies apart
       KIT.gone = true; KIT.muted = true; SFX.drums(); GAME.add(15, KIT_X, RISER.t - 150); GAME.secret("drums");
       for (const p of KIT_PARTS) if (p.on) { p.on = false; FX.debris.push({ part: p, x: KIT_X + p.x * KIT_S, y: RISER.t + p.y * KIT_S, vx: d * rnd(300, 800), vy: rnd(-900, -500), rot: 0, vr: rnd(-14, 14), rest: false }); }
@@ -1940,9 +1944,10 @@ function updateKit(dt) {
 }
 // above the truss: clouds to hop up on, and at the very top the moon, stars and the Big Dipper. Jump on the moon and down it comes.
 const CLOUDS = [{ x: 235, t: 66, w: 120 }, { x: 420, t: -70, w: 128 }, { x: 300, t: -206, w: 116 }].map(c => ({ ...c, p: addP(c.x - c.w / 2 + 8, c.x + c.w / 2 - 8, c.t, "cloud") }));
-const MOON = { hx: 470, hy: -318, r: 38, x: 470, y: -318, st: "up", t: 0, vx: 0, vy: 0, rot: 0, vr: 0, wob: 0 };
-MOON.p = addP(MOON.hx - 32, MOON.hx + 32, MOON.hy - MOON.r + 3, "moon");
-const STARS = (() => { let sd = 7; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647; return Array.from({ length: 70 }, () => ({ x: -300 + r() * (W + 600), y: -760 + r() * 690, s: 0.6 + r() * 1.3, ph: r() * 6 })); })();
+const MOON = { hx: 474, hy: -300, r: 52, x: 474, y: -300, st: "up", t: 0, vx: 0, vy: 0, rot: 0, vr: 0, wob: 0 };
+MOON.p = addP(MOON.hx - 40, MOON.hx + 40, MOON.hy - MOON.r + 3, "moon");
+const STARS = (() => { let sd = 7; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647; return Array.from({ length: 190 }, () => ({ x: -400 + r() * (W + 800), y: -1100 + r() * 1040, s: 0.6 + r() * 1.3, ph: r() * 6 })); })();
+const SHOOT = { t: 2, x: 0, y: 0, vx: 0, vy: 0, life: 0, max: 0 };
 const DIPPER = [[0, 0], [44, -10], [84, -4], [116, 14], [122, 52], [176, 60], [188, 20]].map(([x, y]) => [96 + x, -470 + y]);
 function resetSky() { Object.assign(MOON, { x: MOON.hx, y: MOON.hy, st: "up", t: 0, vx: 0, vy: 0, rot: 0, vr: 0, wob: 0 }); MOON.p.gone = false; }
 function updateSky(dt) {
@@ -1960,10 +1965,20 @@ function updateSky(dt) {
         for (const f of figures) if (!f.dragged && Math.abs(f.x - M.x) < 80 && f.y > FLOOR - 200) { f.knock(f.x < M.x ? -1 : 1); f.vx = (f.x < M.x ? -1 : 1) * 360; f.vy = -420; f.onGround = false; f.touched = true; }
         GAME.add(20, M.x, FLOOR - 120); GAME.secret("moon");
       }
+      else if (M.vy > 420) { FX.sparks(M.x, FLOOR - 6, 6); SFX.body(); }
       M.vy = Math.abs(M.vy) > 260 ? -Math.abs(M.vy) * 0.3 : 0; M.vx *= 0.985; M.vr = M.vx / M.r;
       if (Math.abs(M.vx) < 6 && M.vy === 0) M.st = "down";
     }
   }
+  if ((M.st === "down" || M.st === "roll") && M.y > FLOOR - M.r - 6) for (const f of figures) {   // walk into it and it rolls away
+    if (f.dragged || f.y < M.y - 4) continue;
+    const dx = M.x - f.x, gap = M.r + 14 * f.k;
+    if (Math.abs(dx) < gap) { const dir = Math.sign(dx) || 1; M.x = f.x + dir * gap; M.vx = dir * Math.max(Math.abs(M.vx), Math.abs(f.vx) * 1.15 + 70); M.vr = M.vx / M.r; M.st = "roll"; }
+  }
+  // a shooting star every five seconds or so
+  SHOOT.t -= dt;
+  if (SHOOT.t <= 0) { SHOOT.t = rnd(4.2, 5.8); const d = Math.random() < 0.5 ? -1 : 1; Object.assign(SHOOT, { x: W / 2 - d * rnd(100, 380), y: rnd(-950, -250), vx: d * rnd(520, 700), vy: rnd(180, 300), life: 0, max: rnd(0.8, 1.1) }); }
+  if (SHOOT.max) SHOOT.life += dt;
 }
 function cloudShape(c, x, t, w) {                        // a puffy cloud: a flat-ish base and round tops
   const h = w * 0.34;
@@ -1989,7 +2004,7 @@ function drawSky(c) {
   mg.addColorStop(0, "#fff8e8"); mg.addColorStop(1, "#f3d9a8");
   c.fillStyle = mg; c.beginPath(); c.arc(0, 0, M.r, 0, Math.PI * 2); c.fill();
   c.fillStyle = "rgba(170,120,80,.28)";                   // craters
-  for (const [x, y, r] of [[-12, -8, 8], [10, 10, 6], [14, -14, 4], [-6, 16, 5], [2, -2, 3]]) { c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); }
+  for (const [x, y, r] of [[-16, -11, 11], [14, 14, 8], [19, -19, 5], [-8, 22, 7], [3, -3, 4], [-24, 10, 4]]) { c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); }
   c.restore();
 }
 function lightSky(disc) {                                 // into the light map: clouds and the moon show in full colour
@@ -2003,6 +2018,13 @@ function glowSky(c, t) {                                  // additive: stars, th
   c.globalAlpha = 0.22; c.strokeStyle = "#fff4dc"; c.lineWidth = 1.2; c.beginPath();
   DIPPER.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.lineTo(DIPPER[3][0], DIPPER[3][1]); c.stroke();
   for (const [x, y] of DIPPER) { c.globalAlpha = 0.95; c.beginPath(); c.arc(x, y, 2.6, 0, Math.PI * 2); c.fill(); c.globalAlpha = 0.25; c.beginPath(); c.arc(x, y, 7, 0, Math.PI * 2); c.fill(); }
+  if (SHOOT.max && SHOOT.life < SHOOT.max) {             // the streak: a bright head and a fading tail
+    const k = SHOOT.life / SHOOT.max, hx = SHOOT.x + SHOOT.vx * SHOOT.life, hy = SHOOT.y + SHOOT.vy * SHOOT.life, L = 0.22;
+    const tx = hx - SHOOT.vx * L, ty = hy - SHOOT.vy * L, a = Math.sin(Math.PI * k);
+    const g = c.createLinearGradient(tx, ty, hx, hy); g.addColorStop(0, "rgba(255,244,220,0)"); g.addColorStop(1, `rgba(255,244,220,${0.9 * a})`);
+    c.globalAlpha = 1; c.strokeStyle = g; c.lineWidth = 2.2; c.lineCap = "round"; c.beginPath(); c.moveTo(tx, ty); c.lineTo(hx, hy); c.stroke();
+    c.globalAlpha = a; c.fillStyle = "#fff4dc"; c.beginPath(); c.arc(hx, hy, 2.4, 0, Math.PI * 2); c.fill();
+  }
   const M = MOON;
   if (M.st !== "gone") { const h = c.createRadialGradient(M.x, M.y, M.r * 0.8, M.x, M.y, M.r * 3); h.addColorStop(0, "rgba(255,236,200,.35)"); h.addColorStop(1, "rgba(255,236,200,0)"); c.globalAlpha = 1; c.fillStyle = h; c.fillRect(M.x - M.r * 3, M.y - M.r * 3, M.r * 6, M.r * 6); }
   c.globalAlpha = 1;
