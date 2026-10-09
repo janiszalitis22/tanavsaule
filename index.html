@@ -2121,6 +2121,7 @@ function lightSky(disc) {                                 // into the light map:
   for (const cl of CLOUDS) disc(cl.x, cl.t + 10, cl.w * 0.58, 0.95, 0.72);
   const M = MOON; if (M.st === "gone") return;
   disc(M.x, M.y, M.r + 8, 1, 0.85); disc(M.x, M.y, M.r * 5, 0.38, 0.15);   // the moon and its light
+  if (M.st !== "up" && M.st !== "wobble") { const fade = clamp(1 - (FLOOR - M.y - M.r) / 300, 0, 1); if (fade > 0.02) disc(M.x, 2 * FLOOR - M.y, M.r * 1.6, 0.75 * fade, 0.45); }   // and its shine on the floor
 }
 // how strong the light-speed look is: none at the start and end of the fall, full only in the middle
 function diveAmt() {
@@ -2499,6 +2500,7 @@ function frame(now) {
     rctx.setTransform(1, 0, 0, 1, 0, 0); rctx.clearRect(0, 0, refl.width, refl.height);
     rctx.save(); rctx.setTransform(view);
     rctx.beginPath(); rctx.rect(-1500, FLOOR, W + 3000, -FLOOR - 600); rctx.clip();
+    if (MOON.st !== "up" && MOON.st !== "wobble") drawMoon(rctx);   // the fallen moon shows in the glossy floor
     drawProps(rctx); drawFallenLetters(rctx); drummer.draw(rctx); if (kp !== drummer) kp.draw(rctx); rctx.setTransform(view); drawKit(rctx, kp, t);
     figures.forEach(f => { if (f !== drummer && f !== kp) f.draw(rctx); }); rctx.setTransform(view); figures.forEach(f => f.cable && f.cable.draw(rctx));
     rctx.restore(); view = keep;
