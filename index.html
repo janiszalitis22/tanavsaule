@@ -255,6 +255,7 @@ body.on-stage { background: var(--black); color: var(--white); font-family: var(
 .tx:disabled { opacity: .35; cursor: default; }
 .track { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; font-variant-numeric: tabular-nums; letter-spacing: 0; }
 #seek { flex: 1; min-width: 0; accent-color: var(--yellow); height: 16px; cursor: pointer; }
+.console .row { margin-top: 4px; }
 .tricks { display: flex; gap: 8px 8px; flex-wrap: wrap; justify-content: center; align-items: center; }
 .trick, .keyhint { font: inherit; letter-spacing: inherit; text-transform: inherit; color: var(--muted); background: none; border: 0; padding: 4px 0; white-space: nowrap; }
 .trick { color: var(--white); border: 1.5px solid var(--line); border-radius: 999px; padding: 7px 14px 6px; background: rgba(11, 2, 2, .35); transition: border-color .15s, background .15s; }
@@ -271,6 +272,7 @@ body.on-stage { background: var(--black); color: var(--white); font-family: var(
 @keyframes pad-nudge { 0%, 100% { transform: scale(1); box-shadow: 0 4px 14px rgba(0, 0, 0, .45), 0 0 0 0 rgba(255, 194, 51, 0); } 45% { transform: scale(1.14); border-color: var(--yellow); box-shadow: 0 4px 14px rgba(0, 0, 0, .45), 0 0 0 10px rgba(255, 194, 51, .28); } }
 @media (prefers-reduced-motion: reduce) { .pad.nudge button { animation: none; border-color: var(--yellow); } }
 .touch .pad { display: grid; }
+.stage:has(#gate:not(.gone)) .pad, .stage:has(#again:not(.gone)) .pad { display: none; }
 .pad-left { left: 16px; right: auto; }
 
 .gate { position: absolute; inset: 0; display: grid; place-items: center; transition: opacity .6s; }
@@ -279,6 +281,13 @@ body.on-stage { background: var(--black); color: var(--white); font-family: var(
 .start { font-family: var(--font-display); font-size: 24px; border: 0; border-radius: 999px; padding: 14px 32px 12px; background: var(--yellow); color: var(--black); cursor: pointer; box-shadow: 0 0 40px rgba(255, 194, 51, .4); }
 .start:disabled { background: #2a0a06; color: var(--muted); box-shadow: none; cursor: progress; }
 .gate p { margin: 0; color: var(--muted); font-size: 14px; }
+.gate .pick-title { font-family: var(--font-display); font-size: clamp(22px, 3.4vw, 32px); color: var(--yellow); }
+.cast { display: flex; gap: 6px; justify-content: center; margin-bottom: 8px; }
+.cast button { font: inherit; background: none; border: 0; padding: 6px 4px 4px; cursor: pointer; display: grid; justify-items: center; gap: 6px; color: var(--muted); font-size: 13px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; opacity: .55; transition: opacity .2s, transform .2s, color .2s; }
+.cast button:hover { opacity: .85; }
+.cast canvas { width: 96px; height: 120px; display: block; transition: filter .2s; }
+.cast button[aria-checked="true"] { opacity: 1; color: var(--yellow); transform: translateY(-6px); }
+.cast button[aria-checked="true"] canvas { filter: drop-shadow(0 0 14px rgba(255, 194, 51, .55)); }
 .bar { width: 200px; height: 3px; border-radius: 3px; background: var(--line); overflow: hidden; }
 .bar i { display: block; height: 100%; width: 0; background: var(--yellow); transition: width .3s; }
 
@@ -316,6 +325,9 @@ body.on-stage { background: var(--black); color: var(--white); font-family: var(
   .row { gap: 12px; }
   .tricks { gap: 4px 14px; }
   .keyhint { display: none; }
+  .cast { gap: 0; }
+  .cast canvas { width: 64px; height: 80px; }
+  .cast button { font-size: 11px; padding-inline: 2px; }
 }
 </style>
 
@@ -431,7 +443,7 @@ body.on-stage { background: var(--black); color: var(--white); font-family: var(
   <header class="masthead">
     <h1 class="band" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Tā nav saule – Pamostos</h1>
     <a class="home" href="#">← Tā nav saule</a>
-    <div class="hud"><p class="hint" id="hint">Velc mūziķus ar peli</p><p class="score" id="score" hidden></p></div>
+    <div class="hud"><p class="score" id="score" hidden></p></div>
   </header>
 
   <div class="pad pad-left" id="padL">
@@ -444,13 +456,12 @@ body.on-stage { background: var(--black); color: var(--white); font-family: var(
   </div>
 
   <div class="console" id="console">
+    <div class="tricks" id="tricks"></div>
     <div class="row">
       <button class="tx" id="play" disabled>Atskaņot</button>
       <button class="tx" id="restart" disabled>No sākuma</button>
       <div class="track"><span id="tNow">0:00</span><input type="range" id="seek" min="0" max="1000" value="0" step="1" aria-label="Dziesmas pozīcija"><span id="tDur">0:00</span></div>
-      <button id="who" class="tx" style="color:var(--yellow)" title="Mainīt mūziķi (1)">JZ</button>
     </div>
-    <div class="tricks" id="tricks"></div>
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -471,6 +482,8 @@ body.on-stage { background: var(--black); color: var(--white); font-family: var(
 
   <div class="gate" id="gate">
     <div class="gate-inner">
+      <p class="pick-title">Izvēlies mūziķi</p>
+      <div class="cast" id="cast" role="radiogroup" aria-label="Izvēlies mūziķi"></div>
       <button class="start" id="start" disabled>Ielādē…</button>
       <div class="bar"><i id="loadBar"></i></div>
       <p id="loadText">Ielādē celiņus 0/5</p>
@@ -1753,7 +1766,7 @@ function drawOverlay(t) {
       ctx.fillStyle = C.r1; ctx.beginPath(); ctx.arc(f.x, y, 12, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = C.black; ctx.font = "400 15px Bungee, sans-serif"; ctx.fillText("!", f.x, y + 1);
     }
-    if (f === controlled) {
+    if (f === controlled && Audio.started) {
       ctx.fillStyle = C.bulb; ctx.font = "500 17px Onest, system-ui, sans-serif";
       const y = top - (f.awake && (!f.connected || !f.inst.held) ? 52 : 22);
       ctx.fillText(f.cfg.name, f.x, y - 12);
@@ -1783,14 +1796,12 @@ function stemOn(f) {
   return f.sounding;
 }
 
-function nextMusician() { const i = figures.indexOf(controlled); select(figures[(i + 1) % figures.length]); lastPlayerInput = performance.now() / 1000; }
 const TRICKS = [
-  { key: "1", label: "Mainīt mūziķi", run: nextMusician },
-  { key: "2", label: "Spert", run: () => controlled && controlled.kick() },
-  { key: "3", label: "Deja", run: () => controlled && controlled.dance() },
-  { key: "4", label: "Uguņi pa kreisi", run: () => { FX.fire("left"); if (GAME.fireN++ < 12) GAME.add(1); } },
-  { key: "5", label: "Uguņi pa labi", run: () => { FX.fire("right"); if (GAME.fireN++ < 12) GAME.add(1); } },
-  { key: "6", label: () => controlled && controlled.isDrummer ? "Mest stikus gaisā" : controlled && controlled.cfg.build === "vocal" ? "Mest mikrofonu gaisā" : "Mest ģitāru gaisā", run: () => { if (controlled && controlled.inst.held && controlled.awake) { controlled.throwInst(true); GAME.add(3); } } },
+  { key: "1", label: "Spert", run: () => controlled && controlled.kick() },
+  { key: "2", label: "Deja", run: () => controlled && controlled.dance() },
+  { key: "3", label: "Uguņi pa kreisi", run: () => { FX.fire("left"); if (GAME.fireN++ < 12) GAME.add(1); } },
+  { key: "4", label: "Uguņi pa labi", run: () => { FX.fire("right"); if (GAME.fireN++ < 12) GAME.add(1); } },
+  { key: "5", label: () => controlled && controlled.isDrummer ? "Mest stikus gaisā" : controlled && controlled.cfg.build === "vocal" ? "Mest mikrofonu gaisā" : "Mest ģitāru gaisā", run: () => { if (controlled && controlled.inst.held && controlled.awake) { controlled.throwInst(true); GAME.add(3); } } },
   { key: "0", label: "Atjaunot skatuvi", run: () => placeAll() },     // full reset: musicians, amps, drums, letters
 ];
 // 0: everyone back in place and every instrument playing again; the wrecked stage stays wrecked
@@ -1817,13 +1828,11 @@ const UI = {
     });
     CONFIG.links.concat(CONFIG.socials).forEach(l => { const a = document.createElement("a"); a.href = l.url; a.target = "_blank"; a.rel = "noopener"; a.textContent = l.label; $("links").appendChild(a); });
     $("credits").innerHTML = CONFIG.members.map(m => `<span><b>${m.name}</b> ${m.role}</span>`).join("");
-    if (isTouch) $("hint").innerHTML = "Velc mūziķus ar pirkstu<br>Pieskāriens izvēlas, pogas vada";
     this.refresh();
   },
   refresh() {
     this.btns.forEach(([b, tr]) => { const l = typeof tr.label === "function" ? tr.label() : tr.label; b.innerHTML = `<i>${tr.key}</i>${l}`; });
-    $("who").textContent = controlled ? controlled.cfg.name : "";
-    const sc = $("score"); sc.hidden = !Audio.started; sc.innerHTML = `Haoss <b>${GAME.pct()}%</b><br>Noslēpumi <b>${GAME.found.size}/${GAME.secrets.length}</b>`;
+    const sc = $("score"); sc.hidden = !Audio.started; sc.innerHTML = `Bardaks <b>${GAME.pct()}%</b><br>Noslēpumi <b>${GAME.found.size}/${GAME.secrets.length}</b>`;
   },
   sync() {
     $("play").textContent = Audio.playing ? "Pauze" : "Atskaņot";
@@ -1843,7 +1852,7 @@ function pick(e) {
 }
 canvas.addEventListener("pointerdown", e => {
   const { f, w } = pick(e); if (!f) return;
-  canvas.setPointerCapture(e.pointerId); select(f); lastPlayerInput = performance.now() / 1000;
+  canvas.setPointerCapture(e.pointerId); lastPlayerInput = performance.now() / 1000;
   Object.assign(drag, { f, wx: w.x, wy: w.y, offX: w.x - f.x, offY: w.y - f.y, sx: e.clientX, sy: e.clientY, moved: false });
 });
 canvas.addEventListener("pointermove", e => {
@@ -1860,8 +1869,8 @@ const KEYS = { ArrowLeft: "left", KeyA: "left", ArrowRight: "right", KeyD: "righ
 window.addEventListener("keydown", e => {
   if (stageView.hidden) return;
   if (e.target.tagName === "INPUT" && e.target.type === "range" && e.code.startsWith("Arrow")) return;
-  const tr = TRICKS.find(x => e.code === "Digit" + x.key || e.code === "Numpad" + x.key) || (e.code === "KeyK" ? TRICKS[1] : e.code === "Tab" ? TRICKS[0] : null);
-  if (tr) { if (e.code === "Tab") e.preventDefault(); if (!e.repeat) runTrick(tr); return; }
+  const tr = TRICKS.find(x => e.code === "Digit" + x.key || e.code === "Numpad" + x.key) || (e.code === "KeyK" ? TRICKS[0] : null);
+  if (tr) { if (!e.repeat) runTrick(tr); return; }
   const k = KEYS[e.code]; if (!k) return;
   e.preventDefault(); lastPlayerInput = performance.now() / 1000;
   if (k === "up" && !input.up) input.jumpBuf = 0.15; input[k] = true;
@@ -1878,17 +1887,50 @@ document.querySelectorAll(".pad button").forEach(b => {
 let seeking = false;
 $("seek").addEventListener("input", () => { seeking = true; $("tNow").textContent = fmt($("seek").value / 1000 * Audio.duration); });
 $("seek").addEventListener("change", () => { Audio.seek($("seek").value / 1000 * Audio.duration); seeking = false; });
-$("who").addEventListener("click", nextMusician);
-$("againBtn").addEventListener("click", () => { $("again").classList.add("gone"); $("restart").click(); });
+$("againBtn").addEventListener("click", () => { $("again").classList.add("gone"); if (Audio.playing) Audio.pause(); UI.sync(); CAST.open(); });
 $("restart").addEventListener("click", () => { if (!Audio.ctx) return; $("again").classList.add("gone"); placeAll(); GAME.reset(); Audio.ctx.resume(); Audio.play(0); SIGN.powerT = 0; lastFinaleBar = -1; UI.sync(); });
 $("play").addEventListener("click", () => { if (!Audio.ctx) return; unlockHtmlAudio(); if (Audio.playing) Audio.pause(); else { Audio.ctx.resume(); Audio.play(); } UI.sync(); });
 
 Audio.load(n => { $("loadText").textContent = `Ielādē celiņus ${n}/${CONFIG.members.length}`; $("loadBar").style.width = `${n / CONFIG.members.length * 100}%`; })
-  .then(() => { $("start").disabled = false; $("start").textContent = "Pamosties"; $("loadText").textContent = "Studijā vēl ir tumšs"; })
+  .then(() => { CAST.ready = true; CAST.build(); $("start").textContent = "Pamosties"; $("start").disabled = !CAST.chosen; $("loadText").hidden = true; document.querySelector("#gate .bar").hidden = true; })
   .catch(err => { $("start").textContent = "Neizdevās"; $("loadText").textContent = location.protocol === "file:" ? "No datora atvērtā failā mūzika neielādējas. Lapai jābūt hostingā (tanavsaule.lv)." : `Neizdevās ielādēt ${err.message}.`; });
 $("shareBtn").addEventListener("click", () => GAME.share());
+// before the song: pick one of the five silhouettes; that is who you play until the end
+const CAST = {
+  chosen: null, ready: false,
+  build() {
+    const box = $("cast"); box.innerHTML = "";
+    figures.forEach(f => {
+      const b = document.createElement("button"); b.type = "button"; b.setAttribute("role", "radio"); b.setAttribute("aria-checked", "false");
+      const cv = document.createElement("canvas"); cv.width = 192; cv.height = 240; this.paint(cv, f);
+      b.append(cv, document.createTextNode(f.cfg.name)); b.addEventListener("click", () => this.choose(f)); box.appendChild(b); f.castBtn = b;
+    });
+    if (this.chosen) this.choose(this.chosen);
+  },
+  paint(cv, f) {                                       // the musician drawn alone, then filled flat
+    const c = cv.getContext("2d"), keep = view, s = 1.25;
+    view = new DOMMatrix([s, 0, 0, s, cv.width / 2 - f.x * s, cv.height - 6 - f.y * s]);
+    try { f.draw(c); } catch (e) {}
+    view = keep;
+    c.setTransform(1, 0, 0, 1, 0, 0); c.globalCompositeOperation = "source-in"; c.fillStyle = C.white || "#fff7ea"; c.fillRect(0, 0, cv.width, cv.height);
+  },
+  choose(f) {
+    this.chosen = f; select(f);
+    figures.forEach(x => x.castBtn && x.castBtn.setAttribute("aria-checked", x === f ? "true" : "false"));
+    if (this.ready) { $("start").disabled = false; $("start").textContent = "Pamosties"; }
+  },
+  open() {                                            // result screen → choose again
+    this.build(); $("gate").classList.remove("gone");
+    $("start").disabled = !this.chosen; $("start").textContent = "Pamosties";
+  },
+};
+requestAnimationFrame(() => requestAnimationFrame(() => { if (!$("cast").children.length) CAST.build(); }));
 $("start").addEventListener("click", async () => {
-  GAME.reset();
+  if (!CAST.chosen) return;
+  if (Audio.ctx) {                                     // second round: audio is ready, just start over with the new pick
+    $("gate").classList.add("gone"); placeAll(); select(CAST.chosen); GAME.reset(); Audio.ctx.resume(); Audio.play(0); SIGN.powerT = 0; lastFinaleBar = -1; UI.sync(); return;
+  }
+  GAME.reset(); placeAll(); select(CAST.chosen);
   $("start").disabled = true; $("start").textContent = "…";
   try { await Audio.init(); }
   catch (err) { $("start").textContent = "Neizdevās"; $("loadText").textContent = "Šis pārlūks neatskaņoja dziesmu. Pamēģini citā pārlūkā vai atjauno lapu."; return; }
