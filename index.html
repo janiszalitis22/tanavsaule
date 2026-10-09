@@ -2008,8 +2008,8 @@ function updateKit(dt) {
 const CLOUDS = [{ x: 235, t: 66, w: 120 }, { x: 420, t: -70, w: 128 }, { x: 300, t: -206, w: 116 },
   { x: 150, t: -338, w: 112 }, { x: 318, t: -470, w: 118 }, { x: 480, t: -580, w: 112 }, { x: 395, t: -698, w: 120 }, { x: 205, t: -830, w: 114 },
   { x: 560, t: -1100, w: 120 }, { x: 390, t: -1230, w: 120 }, { x: 210, t: -1360, w: 116 }, { x: 380, t: -1490, w: 120 }, { x: 560, t: -1620, w: 116 }].map(c => ({ ...c, p: addP(c.x - c.w / 2 + 8, c.x + c.w / 2 - 8, c.t, "cloud") }));
-const MOON = { hx: 474, hy: -300, r: 52, x: 474, y: -300, st: "up", t: 0, vx: 0, vy: 0, rot: 0, vr: 0, wob: 0 };
-MOON.p = addP(MOON.hx - 40, MOON.hx + 40, MOON.hy - MOON.r + 3, "moon");
+const MOON = { hx: 474, hy: -277, r: 78, x: 474, y: -277, st: "up", t: 0, vx: 0, vy: 0, rot: 0, vr: 0, wob: 0 };
+MOON.p = addP(MOON.hx - 60, MOON.hx + 60, MOON.hy - MOON.r + 3, "moon");
 const STARS = (() => { let sd = 7; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647; return Array.from({ length: 1500 }, (_, i) => ({ x: -400 + r() * (W + 800), y: i < 190 ? -1100 + r() * 1040 : i < 420 ? -1900 + r() * 1000 : -2900 + r() * 1800, s: 0.6 + r() * 1.3, ph: r() * 6 })); })();
 // Jupiter, way up above the clouds: hop on and stand on the big planet
 const JUP = { x: 400, y: -900, r: 74 }; JUP.p = addP(JUP.x - 52, JUP.x + 52, JUP.y - JUP.r + 4, "moon");
@@ -2102,6 +2102,9 @@ function drawSky(c) {
     ring(0, Math.PI);
     c.restore();
   }
+  if (MOON.st === "up" || MOON.st === "wobble") drawMoon(c);
+}
+function drawMoon(c) {
   const M = MOON;
   if (M.st === "gone") return;
   c.save(); c.translate(M.x, M.y); c.rotate(M.rot + M.wob);
@@ -2109,7 +2112,7 @@ function drawSky(c) {
   mg.addColorStop(0, "#fff8e8"); mg.addColorStop(1, "#f3d9a8");
   c.fillStyle = mg; c.beginPath(); c.arc(0, 0, M.r, 0, Math.PI * 2); c.fill();
   c.fillStyle = "rgba(170,120,80,.28)";                   // craters
-  for (const [x, y, r] of [[-16, -11, 11], [14, 14, 8], [19, -19, 5], [-8, 22, 7], [3, -3, 4], [-24, 10, 4]]) { c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); }
+  const k = M.r / 52; for (const [x, y, r] of [[-16, -11, 11], [14, 14, 8], [19, -19, 5], [-8, 22, 7], [3, -3, 4], [-24, 10, 4]]) { c.beginPath(); c.arc(x * k, y * k, r * k, 0, Math.PI * 2); c.fill(); }
   c.restore();
 }
 function lightSky(disc) {                                 // into the light map: clouds and the moon show in full colour
@@ -2501,6 +2504,7 @@ function frame(now) {
     rctx.restore(); view = keep;
     ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 0.55; ctx.drawImage(refl, 0, 0); ctx.restore();
     ctx.setTransform(view); floorFade(ctx); }
+  if (MOON.st !== "up" && MOON.st !== "wobble") drawMoon(ctx);   // the fallen moon sits behind the stage
   drawProps(ctx);
   drawSky(ctx); drawBirds(ctx);
   drawSign(ctx, t, beat, Audio.started ? Light.sign : 0, Light.finale);
