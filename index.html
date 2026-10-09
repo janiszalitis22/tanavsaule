@@ -297,7 +297,7 @@ body.on-stage { background: var(--black); color: var(--white); font-family: var(
 
 .listen { padding: 64px 24px 72px; background: var(--red-deep); }
 .listen-inner { max-width: 760px; margin: 0 auto; display: grid; gap: 24px; }
-.listen h2 { font-family: var(--font-display); font-weight: 400; font-size: clamp(26px, 4.5vw, 40px); line-height: 1.05; margin: 0; color: var(--yellow); text-wrap: balance; }
+.listen h2 { font-family: var(--font-display); font-weight: 400; font-size: clamp(26px, 4.5vw, 40px); line-height: 1.05; margin: 16px 0 -8px; color: var(--yellow); text-wrap: balance; }
 .listen p { margin: 0; max-width: 60ch; opacity: .85; }
 .links { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 12px; }
 .links a > span:nth-child(2) { min-width: 0; }
@@ -549,8 +549,8 @@ body.on-stage { background: var(--black); color: var(--white); font-family: var(
 
 <section class="listen">
   <div class="listen-inner">
-    <h2>Klausies visu dziesmu</h2>
     <p>Tu spēlē par vienu no grupas mūziķiem. Sper kombjus, bungas un burtus, kāp pa stalažām un mākoņiem līdz pat Saturnam, krāj Bardaku un pildi side questus. Visu dziesmu vari noklausīties straumēšanas platformās.</p>
+    <h2>Klausies visu dziesmu</h2>
     <nav class="links" id="links"></nav>
     <div class="credits" id="credits"></div>
   </div>
@@ -2293,7 +2293,7 @@ const UI = {
     const iconFor = l => /spotify/i.test(l.label) ? "bars" : /apple/i.test(l.label) ? "note" : social(l) ? "cam" : "play";
     CONFIG.links.concat(CONFIG.socials).forEach(l => { const a = document.createElement("a"); a.href = l.url; a.target = "_blank"; a.rel = "noopener";
       a.innerHTML = `<span class="ic">${ICONS[iconFor(l)]}</span><span><small>${social(l) ? "Seko" : "Klausies"}</small><b>${l.label}</b></span><span class="arr" aria-hidden="true">→</span>`; $("links").appendChild(a); });
-    $("credits").innerHTML = CONFIG.members.map(m => `<span><b>${m.name}</b> ${m.role}</span>`).join("");
+    $("credits").innerHTML = CONFIG.members.map(m => `<span><b>${m.name}</b> ${m.role}</span>`).join("") + `<span><b>Armands Varslavāns</b> producents</span>`;
     this.refresh();
   },
   refresh() {
