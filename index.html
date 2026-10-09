@@ -266,6 +266,7 @@ body.on-stage { background: var(--black); color: var(--white); font-family: var(
 .trick:active { background: var(--yellow); color: var(--black); }
 .trick:active i { color: var(--black); }
 .trick { cursor: pointer; }
+.trick.charging { border-color: var(--yellow); background: linear-gradient(to right, rgba(255, 194, 51, .55) calc(var(--p, 0) * 100%), rgba(11, 2, 2, .35) calc(var(--p, 0) * 100%)); }
 .trick:hover, .trick.flash { color: var(--white); }
 .trick i, .keyhint i { font-style: normal; color: var(--yellow); margin-right: 6px; }
 .pad { position: absolute; right: 16px; display: none; grid-template-columns: repeat(2, 56px); gap: 8px; }
@@ -814,6 +815,7 @@ const STUNT = {
     elina: { launch: { x: 676, y: FLOOR - 390 }, dir: -1, order: [7, 6, 5, 4] },    // right scaffold → S O T S
   },
 };
+const qName = q => typeof q.name === "function" ? q.name() : q.name;
 // GAME: a chaos score for the mess you make, eight hidden tricks, and a picture of the result to share
 const GAME = {
   chaos: 0, max: 160, danceN: 0, letterKicks: 0, fireN: 0, snap: null, snapLum: -1, snapT: 0, pops: [], toastT: 0,
@@ -830,6 +832,7 @@ const GAME = {
     { id: "scaffold", name: "Stalažu gāzējs", hint: "Apgāz stalažas ar 5 spērieniem." },
     { id: "dance", name: "Dance vibes", hint: "Nodejo 5 dejas." },
     { id: "birds", name: "Aizbiedē putnus", hint: "Uzkāp augšā pie putniem uz trases." },
+    { id: "toss", name: () => controlled && controlled.isDrummer ? "Stiki vainīgi" : controlled && controlled.cfg.build === "vocal" ? "Mic vainīgs" : "Ģitāra vainīga", hint: "Turi “Mest” līdz galam un met pilnā spēkā." },
     { id: "saturn", name: "Līdz sapņa malai", hint: "Uzlec uz Saturna pašā debesu augšā." },
     { id: "moon", name: "Tā nav saule", hint: "Pa mākoņiem uzlec līdz mēnesim un nogāz to." },
   ],
@@ -841,7 +844,7 @@ const GAME = {
     if (!Audio.playing || this.found.has(id)) return;
     this.found.add(id);                                   // only the counter ticks during the song; the full list shows up at the end
     const q = document.getElementById("questN"); if (q) { q.classList.remove("bump"); void q.offsetWidth; q.classList.add("bump"); clearTimeout(this.bumpT); this.bumpT = setTimeout(() => q.classList.remove("bump"), 1000); } SFX.sparks(0.4);
-    const s = this.secrets.find(x => x.id === id); this.toast(`Side quest: ${s.name} ✓`);
+    const s = this.secrets.find(x => x.id === id); this.toast(`Side quest: ${qName(s)} ✓`);
   },
   toast(msg) { const el = document.getElementById("toast"); el.textContent = msg; el.classList.add("on"); clearTimeout(this.toastT); this.toastT = setTimeout(() => el.classList.remove("on"), 2800); },
   reset() { this.found = new Set(); this.danceN = 0; this.chaos = 0; this.letterKicks = 0; this.fireN = 0; this.snap = null; this.snapLum = -1; this.pops = []; },
@@ -866,7 +869,7 @@ const GAME = {
     document.getElementById("resPct").textContent = this.pct() + "%";
     document.getElementById("resTitle").textContent = this.title();
     document.getElementById("resSec").innerHTML = `<span class="q-head">Side quest <b>${this.found.size}/${this.secrets.length}</b></span><ul class="quests">${
-      this.secrets.map(q => `<li class="${this.found.has(q.id) ? "done" : ""}">${q.name}</li>`).join("")}</ul>`;
+      this.secrets.map(q => `<li class="${this.found.has(q.id) ? "done" : ""}">${qName(q)}</li>`).join("")}</ul>`;
   },
   async card() {
     const CW = 1080, CH = 1920, c = document.createElement("canvas"); c.width = CW; c.height = CH; const x = c.getContext("2d");
@@ -1207,12 +1210,12 @@ class Musician {
       FX.sparks(KIT_X, RISER.t - 60, 16);
     }
   }
-  throwInst(up = false) {                                   // up = toss it high into the air, it spins and crashes down
+  throwInst(up = false, power = 0.5) {                      // up = toss it into the air (power: how hard), it spins and crashes down wherever it ends up
     if (!this.inst.held || !this.awake || this.knockT > 0) return;
     const I = this.inst; I.held = false; I.age = 0; I.landed = false; this.danceT = 0;
-    const vx = () => up ? rnd(-60, 60) : (Math.random() < 0.5 ? -1 : 1) * rnd(450, 800), vy = () => up ? rnd(-980, -900) : rnd(-900, -650);
+    const vx = () => up ? this.face * (30 + 270 * power) + rnd(-25, 25) : (Math.random() < 0.5 ? -1 : 1) * rnd(450, 800), vy = () => up ? -(680 + 330 * power) - rnd(0, 30) : rnd(-900, -650);
     const lift = up ? 0.3 : 1;                               // tossed up: drifts slowly, hangs in the air about twice as long
-    if (this.isDrummer) { I.regrow = up ? 4.6 : 2.6; for (const sx of [-1, 1]) FX.debris.push({ stick: true, g: lift, x: this.x + sx * 12, y: this.y - 110, vx: up ? sx * rnd(15, 50) : sx * rnd(200, 420), vy: vy(), rot: 0, vr: rnd(-20, 20), rest: false }); return; }
+    if (this.isDrummer) { I.regrow = up ? 4.6 : 2.6; for (const sx of [-1, 1]) FX.debris.push({ stick: true, g: lift, x: this.x + sx * 12, y: this.y - 110, vx: up ? this.face * (30 + 270 * power) + sx * rnd(15, 50) : sx * rnd(200, 420), vy: vy(), rot: 0, vr: rnd(-20, 20), rest: false }); return; }
     const j = this.jackWorld || { x: this.x, y: this.y - 60 };
     I.x = j.x; I.y = j.y - 20; I.vx = vx(); I.vy = vy(); I.rot = 0; I.g = lift; I.vr = (up ? rnd(4.5, 7) : 0.6 * rnd(12, 20)) * (Math.random() < 0.5 ? -1 : 1);
   }
@@ -1721,6 +1724,11 @@ function drawBackdrop(c) {
   { const band = c.createLinearGradient(0, TRUSS - 150, 0, TRUSS + 6);   // a faint warm glow along the top of the truss: the birds read against it
     band.addColorStop(0, "rgba(255,106,34,0)"); band.addColorStop(0.7, "rgba(255,106,34,.32)"); band.addColorStop(1, "rgba(255,130,50,.55)");
     c.fillStyle = band; c.fillRect(-1500, TRUSS - 150, W + 3000, 156); }
+  for (const f of figures) {                               // the thrown instrument's little spot, warm on the dark wall up high
+    const I = f.inst; if (f.isDrummer || I.held || !Audio.started || I.y > FLOOR - 220) continue;
+    const g = c.createRadialGradient(I.x, I.y, 0, I.x, I.y, 72); g.addColorStop(0, "rgba(255,106,34,.85)"); g.addColorStop(0.55, "rgba(255,106,34,.6)"); g.addColorStop(1, "rgba(255,106,34,0)");
+    c.fillStyle = g; c.fillRect(I.x - 72, I.y - 72, 144, 144);
+  }
   // up high the wall is dark: give a raised musician's spot the same orange glow behind him as on the stage
   figures.forEach((f, i) => {
     const on = (Light.spots[i] || 0) * (f.awake ? 1 : 0.35), hgt = FLOOR - 62 * f.k - spotY[i];
@@ -1866,6 +1874,7 @@ function drawLighting(t, beat) {
     if (on > 0.02) spots.push({ x: spotX[i], y: spotY[i], r: 120 * f.k, on });
   });
   const disc = (x, y, rad, a, core) => { const g = mctx.createRadialGradient(x, y, 0, x, y, rad); g.addColorStop(0, `rgba(255,255,255,${a})`); g.addColorStop(core, `rgba(255,255,255,${a})`); g.addColorStop(1, "rgba(255,255,255,0)"); mctx.fillStyle = g; mctx.fillRect(x - rad, y - rad, rad * 2, rad * 2); };
+  for (const f of figures) { const I = f.inst; if (!f.isDrummer && !I.held && Audio.started) disc(I.x, I.y, 72, 0.95, 0.55); }
   for (const q of spots) {
     disc(q.x, q.y, q.r, q.on, 0.72);
     // floor reflection of the spot: the higher the musician, the fainter and blurrier it gets
@@ -1907,6 +1916,12 @@ function drawLighting(t, beat) {
 }
 function drawOverlay(t) {
   ctx.setTransform(view); ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  if (CHARGE.t0 !== null && controlled) {                  // wind-up ring over your musician
+    const p = CHARGE.level(), c = controlled, cx = c.x, cy = c.box().t - 34;
+    ctx.lineWidth = 5; ctx.lineCap = "round"; ctx.strokeStyle = "rgba(255,247,234,.25)"; ctx.beginPath(); ctx.arc(cx, cy, 15, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = p >= 0.98 ? C.bulb : C.yellow; ctx.beginPath(); ctx.arc(cx, cy, 15, -Math.PI / 2, -Math.PI / 2 + p * Math.PI * 2); ctx.stroke();
+    CHARGE.paint(p);
+  }
   for (const p of GAME.pops) {                             // +points float up from where the mess happened
     ctx.globalAlpha = Math.min(1, (1.1 - p.t) * 2.5); ctx.font = `400 ${Math.round(20 + p.t * 8)}px Bungee, "Arial Black", sans-serif`;
     ctx.lineWidth = 5; ctx.strokeStyle = C.black; ctx.fillStyle = C.yellow; const y = p.y - p.t * 70;
@@ -2203,7 +2218,7 @@ function stemOn(f) {
 const TRICKS = [
   { key: "1", label: "Spert", run: () => controlled && controlled.kick() },
   { key: "2", label: "Deja", run: () => controlled && controlled.dance() },
-  { key: "3", label: () => controlled && controlled.isDrummer ? "Mest stikus gaisā" : controlled && controlled.cfg.build === "vocal" ? "Mest mikrofonu gaisā" : "Mest ģitāru gaisā", run: () => { if (controlled && controlled.inst.held && controlled.awake) { controlled.throwInst(true); GAME.add(3); } } },
+  { key: "3", hold: true, label: () => controlled && controlled.isDrummer ? "Mest stikus" : controlled && controlled.cfg.build === "vocal" ? "Mest mikrofonu" : "Mest ģitāru", run: () => { if (controlled && controlled.inst.held && controlled.awake) { controlled.throwInst(true); GAME.add(3); } } },
   { key: "0", label: "Atjaunot skatuvi", run: () => placeAll() },     // full reset: musicians, amps, drums, letters
 ];
 // 0: everyone back in place and every instrument playing again; the wrecked stage stays wrecked
@@ -2226,6 +2241,11 @@ const UI = {
     const hint = document.createElement("span"); hint.className = "keyhint"; hint.innerHTML = "<i>← →</i>iet <i style='margin-left:10px'>↓</i>tupties"; $("tricks").appendChild(hint);
     TRICKS.forEach(tr => {
       const b = document.createElement("button"); b.className = "trick"; b.id = "trick-" + tr.key;
+      if (tr.hold) {                                       // hold to wind up, let go to throw
+        b.addEventListener("pointerdown", e => { e.preventDefault(); b.setPointerCapture(e.pointerId); CHARGE.start(); });
+        b.addEventListener("pointerup", () => CHARGE.release()); b.addEventListener("pointercancel", () => CHARGE.release());
+        b.addEventListener("contextmenu", e => e.preventDefault());
+      } else
       b.addEventListener("click", () => { runTrick(tr); }); $("tricks").appendChild(b); this.btns.push([b, tr]);
     });
     CONFIG.links.concat(CONFIG.socials).forEach(l => { const a = document.createElement("a"); a.href = l.url; a.target = "_blank"; a.rel = "noopener"; a.textContent = l.label; $("links").appendChild(a); });
@@ -2242,7 +2262,20 @@ const UI = {
     $("play").textContent = Audio.playing ? "Pauze" : "Atskaņot";
   },
 };
-function runTrick(tr) { tr.run(); const b = $("trick-" + tr.key); b.classList.add("flash"); setTimeout(() => b.classList.remove("flash"), 180); UI.refresh(); }
+// "Mest": the longer you hold, the higher and farther it goes; a full-power throw is a side quest
+const CHARGE = {
+  t0: null, FULL: 1.2,
+  start() { if (this.t0 !== null || !controlled || !controlled.inst.held || !controlled.awake) return; this.t0 = performance.now(); },
+  level() { return this.t0 === null ? 0 : clamp((performance.now() - this.t0) / 1000 / this.FULL, 0, 1); },
+  release() {
+    if (this.t0 === null) return; const p = this.level(); this.t0 = null; CHARGE.paint(0);
+    const c = controlled; if (!c || !c.inst.held || !c.awake || c.knockT > 0) return;
+    c.throwInst(true, Math.max(0.12, p)); GAME.add(3); if (p >= 0.98) GAME.secret("toss"); UI.refresh();
+  },
+  paint(p) { const b = document.getElementById("trick-3"); if (b) { b.style.setProperty("--p", p); b.classList.toggle("charging", p > 0); } },
+};
+function runTrick(tr) {
+  if (tr.hold) { CHARGE.start(); CHARGE.release(); return; } tr.run(); const b = $("trick-" + tr.key); b.classList.add("flash"); setTimeout(() => b.classList.remove("flash"), 180); UI.refresh(); }
 function select(f) { controlled = f; UI.refresh(); }
 UI.build(); select(figures[0]);
 
@@ -2274,12 +2307,12 @@ window.addEventListener("keydown", e => {
   if (stageView.hidden) return;
   if (e.target.tagName === "INPUT" && e.target.type === "range" && e.code.startsWith("Arrow")) return;
   const tr = TRICKS.find(x => e.code === "Digit" + x.key || e.code === "Numpad" + x.key) || (e.code === "KeyK" ? TRICKS[0] : null);
-  if (tr) { if (!e.repeat) runTrick(tr); return; }
+  if (tr) { if (!e.repeat) { if (tr.hold) CHARGE.start(); else runTrick(tr); } return; }
   const k = KEYS[e.code]; if (!k) return;
   e.preventDefault(); lastPlayerInput = performance.now() / 1000;
   if (k === "up" && !input.up) input.jumpBuf = 0.15; input[k] = true;
 });
-window.addEventListener("keyup", e => { const k = KEYS[e.code]; if (k) input[k] = false; });
+window.addEventListener("keyup", e => { if (e.code === "Digit3" || e.code === "Numpad3") CHARGE.release(); const k = KEYS[e.code]; if (k) input[k] = false; });
 window.addEventListener("blur", () => { input.left = input.right = input.up = input.down = false; });
 document.querySelectorAll(".pad button").forEach(b => {
   const k = b.dataset.k;
@@ -2307,7 +2340,7 @@ const INFO = {
   open(kind) {
     let h;
     if (kind === "chaos") {
-      const pts = [["Nogāzt mēnesi", 20], ["Iespert pa bungām", 15], ["Apgāzt stalažas", "12 + 5×2"], ["Iespert pa kombi", 10], ["Iespert grupas biedram", 8], ["Uzlēkt kādam uz galvas", 6], ["Uzlēkt uz burta", 5], ["Iespert pa burtu uz zemes", 3], ["Mest instrumentu gaisā", 3]];
+      const pts = [["Nogāzt mēnesi", 20], ["Iespert pa bungām", 15], ["Apgāzt stalažas", "12 + 5×2"], ["Iespert pa kombi", 10], ["Iespert grupas biedram", 8], ["Uzlēkt kādam uz galvas", 6], ["Uzlēkt uz burta", 5], ["Iespert pa burtu uz zemes", 3], ["Mest instrumentu", 3]];
       const p = GAME.pct(), cur = GAME.title();
       h = `<h2 id="infoTitle">Bardaks</h2><p>Cik pamatīgi tu izjauc skatuvi dziesmas laikā. Par katru nedarbu krājas punkti, un beigās tu saņem titulu. Šobrīd: <b style="color:var(--yellow)">${p}%</b>.</p>
         <h3>Punkti</h3><ul>${pts.map(([a, b]) => `<li><span>${a}</span><b>+${b}</b></li>`).join("")}</ul>
