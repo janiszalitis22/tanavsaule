@@ -841,7 +841,7 @@ function stageCrop() {
 // GAME: a chaos score for the mess you make, eight hidden tricks, and a picture of the result to share
 const GAME = {
   chaos: 0, max: 160, notes: [], danceN: 0, letterKicks: 0, fireN: 0, snap: null, snapLum: -1, snapT: 0, pops: [], toastT: 0,
-  titles: [[0, "Pieklājīgi aizmidzis"], [10, "Pamodies, bet vēl pidžamā"], [30, "Kaimiņi jau klauvē"], [60, "Skaņu tehniķis raud stūrī"], [85, "Tā nav saule, tā ir apokalipse"]],
+  titles: [[0, "Es atnācu tikai paskatīties"], [10, "Pamodies, bet vēl pidžamā"], [30, "Kaimiņi šokā"], [60, "Skaņu tehniķis raud stūrī"], [85, "Tā nav saule, tā ir apokalipse"]],
   secrets: [
     { id: "truss", name: "Augstāk par visiem", hint: "Uzkāp pašā augšā uz stalažām." },
     { id: "head", name: "Lēciens uz galvas", hint: "Uzlec kādam grupas biedram uz galvas." },
@@ -904,7 +904,8 @@ const GAME = {
     try { await Promise.all([document.fonts.load("400 100px Bungee"), document.fonts.load("700 48px Onest"), document.fonts.load("500 48px Onest")]); } catch (e) {}
     const bg = x.createLinearGradient(0, 0, 0, CH); bg.addColorStop(0, "#1c0302"); bg.addColorStop(0.6, "#5e0d07"); bg.addColorStop(1, "#8e1a08");
     x.fillStyle = bg; x.fillRect(0, 0, CW, CH);
-    const src = this.snap || stageCrop(), ph = 1000, ar = CW / ph, sr = src.width / src.height;
+    const clean = await new Promise(r => { const im = new Image(); im.onload = () => r(im); im.onerror = () => r(null); im.src = "img/card-stage.jpg"; });   // the band all in place, no mess
+    const src = clean || this.snap || stageCrop(), ph = 1000, ar = CW / ph, sr = src.width / src.height;
     let sw, sh; if (sr > ar) { sh = src.height; sw = sh * ar; } else { sw = src.width; sh = sw / ar; }
     const pic = document.createElement("canvas"); pic.width = CW; pic.height = ph; const px = pic.getContext("2d");
     px.drawImage(src, (src.width - sw) / 2, (src.height - sh) / 2, sw, sh, 0, 0, CW, ph);
