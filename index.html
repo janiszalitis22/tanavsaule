@@ -347,6 +347,8 @@ body.on-stage { background: var(--black); color: var(--white); font-family: var(
 .gate .res-lead, .gate .res-unit { color: var(--white); font-size: 17px; font-weight: 500; }
 .gate .res-pct { font-family: var(--font-display); font-size: clamp(68px, 15vw, 128px); line-height: .9; color: var(--yellow); font-variant-numeric: tabular-nums; }
 .gate .res-title { color: var(--yellow); font-size: 20px; font-weight: 700; margin-top: 6px; }
+.gate .res-score { color: var(--white); font-size: 15px; letter-spacing: .14em; text-transform: uppercase; }
+.gate .res-score b { color: var(--yellow); font-family: var(--font-display); font-weight: 400; font-size: 26px; letter-spacing: .02em; margin-left: 8px; }
 .gate .res-sec { width: min(440px, 100%); margin-top: 10px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 14px; line-height: 1.4; }
 .q-head { display: block; margin-bottom: 8px; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
 .q-head b { color: var(--yellow); }
@@ -492,7 +494,7 @@ body.on-stage { background: var(--black); color: var(--white); font-family: var(
   <header class="masthead">
     <h1 class="band" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Tā nav saule – Pamostos</h1>
     <a class="home" href="#">← Tā nav saule</a>
-    <div class="hud"><div class="score" id="score" hidden><button type="button" id="chaosBtn"></button><span id="questN"></span></div></div>
+    <div class="hud"><div class="score" id="score" hidden><span id="scoreN"></span><button type="button" id="chaosBtn"></button><span id="questN"></span></div></div>
   </header>
 
   <div class="pad pad-left" id="padL">
@@ -528,6 +530,7 @@ body.on-stage { background: var(--black); color: var(--white); font-family: var(
       <p class="res-pct" id="resPct">0%</p>
       <p class="res-unit">skatuves</p>
       <p class="res-title" id="resTitle"></p>
+      <p class="res-score" id="resScore"></p>
       <div class="res-sec" id="resSec"></div>
       <div class="res-btns">
         <button class="start" id="againBtn">Pamosties vēlreiz</button>
@@ -839,7 +842,7 @@ const GAME = {
     { id: "silence", name: "Pilnīgs klusums", hint: "Panāc, ka neskan neviens instruments." },
     { id: "nosign", name: "Bez uzraksta", hint: "Visi uzraksta burti uz zemes vienlaikus." },
     { id: "scaffold", name: "Stalažu gāzējs", hint: "Apgāz stalažas ar 5 spērieniem." },
-    { id: "dance", name: "Dance vibes", hint: "Nodejo 5 dejas." },
+    { id: "dance", name: "Dancing Queen", hint: "Nodejo 2 dejas." },
     { id: "birds", name: "Aizbiedē putnus", hint: "Uzkāp augšā pie putniem uz trases." },
     { id: "toss", name: () => controlled && controlled.isDrummer ? "Stiki vainīgi" : controlled && controlled.cfg.build === "vocal" ? "Mic vainīgs" : "Ģitāra vainīga", hint: "Turi “Mest” līdz galam un met pilnā spēkā." },
     { id: "saturn", name: "Līdz sapņa malai", hint: "Uzlec uz Saturna pašā debesu augšā." },
@@ -847,6 +850,8 @@ const GAME = {
   ],
   found: new Set(),
   pct() { return Math.min(100, Math.round(this.chaos / this.max * 100)); },
+  score() { return this.chaos * 10 + this.found.size * 250; },        // mess made plus side quests done
+  fmtScore() { return this.score().toLocaleString("lv-LV").replace(/\s/g, " "); },
   title() { const p = this.pct(); let n = this.titles[0][1]; for (const [v, t] of this.titles) if (p >= v) n = t; return n; },
   add(n, x, y) { if (!Audio.playing) return; this.chaos += n; if (x !== undefined) this.pops.push({ x, y, n, t: 0 }); },
   secret(id, x, y) {
@@ -879,6 +884,7 @@ const GAME = {
   showResult() {
     document.getElementById("resPct").textContent = this.pct() + "%";
     document.getElementById("resTitle").textContent = this.title();
+    document.getElementById("resScore").innerHTML = `Score <b>${this.fmtScore()}</b>`;
     document.getElementById("resSec").innerHTML = `<span class="q-head">Side quest <b>${this.found.size}/${this.secrets.length}</b></span><ul class="quests">${
       this.secrets.map(q => `<li class="${this.found.has(q.id) ? "done" : ""}">${qName(q)}</li>`).join("")}</ul>`;
   },
@@ -887,32 +893,53 @@ const GAME = {
     try { await Promise.all([document.fonts.load("400 100px Bungee"), document.fonts.load("700 48px Onest"), document.fonts.load("500 48px Onest")]); } catch (e) {}
     const bg = x.createLinearGradient(0, 0, 0, CH); bg.addColorStop(0, "#1c0302"); bg.addColorStop(0.6, "#5e0d07"); bg.addColorStop(1, "#8e1a08");
     x.fillStyle = bg; x.fillRect(0, 0, CW, CH);
-    const src = this.snap || canvas, ph = 1100, ar = CW / ph, sr = src.width / src.height;
+    const src = this.snap || canvas, ph = 900, ar = CW / ph, sr = src.width / src.height;
     let sw, sh; if (sr > ar) { sh = src.height; sw = sh * ar; } else { sw = src.width; sh = sw / ar; }
     const pic = document.createElement("canvas"); pic.width = CW; pic.height = ph; const px = pic.getContext("2d");
     px.drawImage(src, (src.width - sw) / 2, (src.height - sh) / 2, sw, sh, 0, 0, CW, ph);
-    const fade = px.createLinearGradient(0, ph - 420, 0, ph); fade.addColorStop(0, "rgba(0,0,0,1)"); fade.addColorStop(1, "rgba(0,0,0,0)");
+    const fade = px.createLinearGradient(0, ph - 380, 0, ph); fade.addColorStop(0, "rgba(0,0,0,1)"); fade.addColorStop(1, "rgba(0,0,0,0)");
     px.globalCompositeOperation = "destination-in"; px.fillStyle = fade; px.fillRect(0, 0, CW, ph);
     x.drawImage(pic, 0, 0);
     x.textAlign = "center"; x.textBaseline = "alphabetic";
-    const n = this.found.size;
-    if (n) { x.font = "700 34px Onest, sans-serif"; const t = `Side quest ${n}/${this.secrets.length}`, w = x.measureText(t).width + 56; x.fillStyle = "rgba(11,2,2,.7)"; x.beginPath(); x.roundRect(CW / 2 - w / 2, 70, w, 64, 32); x.fill(); x.fillStyle = "#ffc233"; x.fillText(t, CW / 2, 114); }
     x.shadowColor = "rgba(255,170,40,.55)"; x.shadowBlur = 40;
-    x.fillStyle = "#ffc233"; x.font = "400 54px Bungee, sans-serif"; x.fillText(CONFIG.band.toUpperCase(), CW / 2, 1150);
-    x.font = "400 140px Bungee, sans-serif"; x.fillText(CONFIG.song.toUpperCase(), CW / 2, 1290);
+    x.fillStyle = "#ffc233"; x.font = "400 50px Bungee, sans-serif"; x.fillText(CONFIG.band.toUpperCase(), CW / 2, 930);
+    x.font = "400 124px Bungee, sans-serif"; x.fillText(CONFIG.song.toUpperCase(), CW / 2, 1055);
     x.shadowBlur = 0;
-    x.fillStyle = "#fff7ea"; x.font = "500 50px Onest, sans-serif"; x.fillText("Es izpostīju", CW / 2, 1420);
-    x.fillStyle = "#ffc233"; x.font = "400 210px Bungee, sans-serif"; x.fillText(this.pct() + "%", CW / 2, 1620);
-    x.fillStyle = "#fff7ea"; x.font = "500 50px Onest, sans-serif"; x.fillText("skatuves", CW / 2, 1700);
-    x.fillStyle = "#ffc233"; x.font = "700 48px Onest, sans-serif"; x.fillText(this.title(), CW / 2, 1775);
-    x.fillStyle = "rgba(255,247,234,.75)"; x.font = "700 40px Onest, sans-serif"; x.fillText("tanavsaule.lv/pamostos", CW / 2, 1865);
+    // three numbers in a row: score, the mess, side quests
+    const stats = [["Score", this.fmtScore()], ["Bardaks", this.pct() + "%"], ["Side quest", `${this.found.size}/${this.secrets.length}`]];
+    stats.forEach(([k, v], i) => {
+      const cx = CW / 2 + (i - 1) * 340;
+      x.fillStyle = "rgba(255,247,234,.7)"; x.font = "700 28px Onest, sans-serif"; x.fillText(k.toUpperCase(), cx, 1155);
+      x.fillStyle = "#ffc233"; x.font = `400 ${v.length > 6 ? 62 : 76}px Bungee, sans-serif`; x.fillText(v, cx, 1240);
+    });
+    x.strokeStyle = "rgba(255,247,234,.18)"; x.lineWidth = 2;
+    for (const dx of [-170, 170]) { x.beginPath(); x.moveTo(CW / 2 + dx, 1130); x.lineTo(CW / 2 + dx, 1250); x.stroke(); }
+    x.fillStyle = "#fff7ea"; x.font = "700 44px Onest, sans-serif"; x.fillText(this.title(), CW / 2, 1325);
+    // every side quest as a pill: done ones solid yellow with a tick, the rest faint outlines
+    x.font = "700 27px Onest, sans-serif"; x.textBaseline = "middle";
+    const pills = this.secrets.map(q => { const done = this.found.has(q.id), t = (done ? "✓ " : "") + qName(q); return { t, done, w: x.measureText(t).width + 44 }; });
+    const rows = [[]]; let rw = 0; const maxW = 980, gap = 12, pH = 52;
+    for (const pl of pills) { if (rw + pl.w > maxW && rows[rows.length - 1].length) { rows.push([]); rw = 0; } rows[rows.length - 1].push(pl); rw += pl.w + gap; }
+    let py = 1395;
+    for (const row of rows) {
+      let px = CW / 2 - (row.reduce((a, pl) => a + pl.w, 0) + gap * (row.length - 1)) / 2;
+      for (const pl of row) {
+        x.beginPath(); x.roundRect(px, py, pl.w, pH, pH / 2);
+        if (pl.done) { x.fillStyle = "#ffc233"; x.fill(); x.fillStyle = "#0b0202"; }
+        else { x.strokeStyle = "rgba(255,247,234,.28)"; x.lineWidth = 2; x.stroke(); x.fillStyle = "rgba(255,247,234,.45)"; }
+        x.fillText(pl.t, px + pl.w / 2, py + pH / 2 + 1); px += pl.w + gap;
+      }
+      py += pH + gap;
+    }
+    x.textBaseline = "alphabetic";
+    x.fillStyle = "rgba(255,247,234,.75)"; x.font = "700 38px Onest, sans-serif"; x.fillText("tanavsaule.lv/pamostos", CW / 2, 1880);
     return await new Promise(r => c.toBlob(r, "image/png"));
   },
   async share() {
     const btn = document.getElementById("shareBtn"), sp = btn.querySelector("span"), label = sp.textContent; btn.disabled = true; sp.textContent = "Taisa bildi…";
     try {
       const blob = await this.card(), file = new File([blob], "pamostos-rezultats.png", { type: "image/png" });
-      const text = `Es izpostīju ${this.pct()}% skatuves. Pamosties arī tu: https://tanavsaule.lv/pamostos/`;
+      const text = `Score ${this.fmtScore()}, izpostīju ${this.pct()}% skatuves un izpildīju ${this.found.size}/${this.secrets.length} side questus. Pamosties arī tu: https://tanavsaule.lv/pamostos/`;
       if (navigator.canShare && navigator.canShare({ files: [file] })) await navigator.share({ files: [file], text });
       else { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = file.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); }
     } catch (e) { /* the viewer closed the share sheet */ }
@@ -1180,7 +1207,7 @@ class Musician {
     if (this.ampTask && this.ampTask.fly && this.ampTask.fly.carry === this) { const F = this.ampTask.fly; F.carry = null; F.rest = false; F.vx = dir * 220; F.vy = -320; F.vr = dir * 4; F.downT = 0; }
     this.knockT = 1.8; this.lieDir = dir; this.rockT = this.danceT = 0; for (const f of figures) if (f.standOn === this) f.vy = -300; }
   rock() { if (this.awake) { this.rockT = 5; this.danceT = 0; } }
-  dance() { if (!this.awake) return; if (this === controlled && this.danceT < 0.5 && Audio.playing && ++GAME.danceN >= 5) GAME.secret("dance"); this.danceT = 4; this.rockT = 0; }
+  dance() { if (!this.awake) return; if (this === controlled && this.danceT < 0.5 && Audio.playing && ++GAME.danceN >= 2) GAME.secret("dance"); this.danceT = 4; this.rockT = 0; }
   kick() {
     if (!this.awake || this.knockT > 0 || this.kickT > 0) return;
     this.kickT = 0.4; const d = this.face, x0 = this.x + d * 8, x1 = this.x + d * 90, top = this.y - 115 * this.k, bot = this.y + 4;
@@ -2336,7 +2363,8 @@ const UI = {
   },
   refresh() {
     this.btns.forEach(([b, tr]) => { const l = typeof tr.label === "function" ? tr.label() : tr.label; b.innerHTML = `<i>${tr.key}</i>${l}`; });
-    $("score").hidden = !Audio.started; const ch = `Bardaks <b>${GAME.pct()}%</b>`, qn = `Side quest <b>${GAME.found.size}/${GAME.secrets.length}</b>`;
+    $("score").hidden = !Audio.started; const sn = `Score <b>${GAME.fmtScore()}</b>`; if ($("scoreN").innerHTML !== sn) $("scoreN").innerHTML = sn;
+    const ch = `Bardaks <b>${GAME.pct()}%</b>`, qn = `Side quest <b>${GAME.found.size}/${GAME.secrets.length}</b>`;
     if ($("chaosBtn").innerHTML !== ch) $("chaosBtn").innerHTML = ch;
     if ($("questN").innerHTML !== qn) $("questN").innerHTML = qn;          // re-render only on change, or the bump animation restarts forever
   },
@@ -2543,8 +2571,9 @@ function frame(now) {
   ctx.setTransform(view); figures.forEach(f => f.cable && f.cable.draw(ctx));
   drawLighting(t, beat, dt);
   Confetti.draw(ctx, t);
-  drawOverlay(t); drawNotes(dt);
+  drawOverlay(t);
   if (Audio.playing && at >= 193 && at <= 222 && t - GAME.snapT > 0.4) { GAME.snapT = t; GAME.shot(); }   // the frame is drawn now
+  drawNotes(dt);                                           // after the snapshot, so the share picture stays clean
 
   if (Audio.ctx && !seeking) { $("seek").value = Math.round(at / Audio.duration * 1000) || 0; const s = Math.floor(at); if (s !== lastSec) { lastSec = s; $("tNow").textContent = fmt(at); } }
   requestAnimationFrame(frame);
