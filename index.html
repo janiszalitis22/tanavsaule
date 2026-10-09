@@ -233,6 +233,7 @@ html:has(body.on-stage) { background: #0b0202; }
 body.on-stage .cookie { display: none; }
 body.on-stage { background: var(--black); color: var(--white); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
 
+.stage, .stage * { touch-action: manipulation; }
 .stage { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
 .stage { position: relative; height: 100vh; height: 100svh; min-height: 560px; overflow: hidden; background: var(--black); }
 #game { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
@@ -2033,6 +2034,9 @@ Audio.load(n => { $("loadText").textContent = `Ielādē celiņus ${n}/${CONFIG.m
   .then(() => { CAST.ready = true; CAST.build(); $("start").textContent = "Pamosties"; $("start").disabled = !CAST.chosen; $("loadText").hidden = true; document.querySelector("#gate .bar").hidden = true; })
   .catch(err => { $("start").textContent = "Neizdevās"; $("loadText").textContent = location.protocol === "file:" ? "No datora atvērtā failā mūzika neielādējas. Lapai jābūt hostingā (tanavsaule.lv)." : `Neizdevās ielādēt ${err.message}.`; });
 $("shareBtn").addEventListener("click", () => GAME.share());
+// no double-tap zoom on the stage (iOS Safari ignores touch-action in places)
+{ let lastTap = 0; $("stage").addEventListener("touchend", e => { const now = e.timeStamp; if (now - lastTap < 350) { e.preventDefault(); const el = e.target.closest("button"); if (el && !el.disabled) el.click(); } lastTap = now; }, { passive: false }); }
+$("stage").addEventListener("dblclick", e => e.preventDefault());
 // tap Bardaks in the corner: what it is and how to get more
 const INFO = {
   open(kind) {
