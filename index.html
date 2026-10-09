@@ -812,7 +812,7 @@ const STUNT = {
 };
 // GAME: a chaos score for the mess you make, eight hidden tricks, and a picture of the result to share
 const GAME = {
-  chaos: 0, max: 160, letterKicks: 0, fireN: 0, snap: null, snapLum: -1, snapT: 0, pops: [], toastT: 0,
+  chaos: 0, max: 160, danceN: 0, letterKicks: 0, fireN: 0, snap: null, snapLum: -1, snapT: 0, pops: [], toastT: 0,
   titles: [[0, "Pārāk pieklājīgs fans"], [10, "Uzmanīgs skaņu tehniķis"], [30, "Rokenrola māceklis"], [60, "Skaņu tehniķa murgs"], [85, "Skatuves iznīcinātājs"]],
   secrets: [
     { id: "truss", name: "Augstāk par visiem", hint: "Uzkāp pašā augšā uz stalažām." },
@@ -824,6 +824,7 @@ const GAME = {
     { id: "silence", name: "Pilnīgs klusums", hint: "Panāc, ka neskan neviens instruments." },
     { id: "nosign", name: "Bez uzraksta", hint: "Visi uzraksta burti uz zemes vienlaikus." },
     { id: "scaffold", name: "Stalažu gāzējs", hint: "Apgāz stalažas ar 5 spērieniem." },
+    { id: "dance", name: "Dance vibes", hint: "Nodejo 5 dejas." },
   ],
   found: new Set(),
   pct() { return Math.min(100, Math.round(this.chaos / this.max * 100)); },
@@ -836,7 +837,7 @@ const GAME = {
     const s = this.secrets.find(x => x.id === id); this.toast(`Side quest: ${s.name} ✓`);
   },
   toast(msg) { const el = document.getElementById("toast"); el.textContent = msg; el.classList.add("on"); clearTimeout(this.toastT); this.toastT = setTimeout(() => el.classList.remove("on"), 2800); },
-  reset() { this.found = new Set(); this.chaos = 0; this.letterKicks = 0; this.fireN = 0; this.snap = null; this.snapLum = -1; this.pops = []; },
+  reset() { this.found = new Set(); this.danceN = 0; this.chaos = 0; this.letterKicks = 0; this.fireN = 0; this.snap = null; this.snapLum = -1; this.pops = []; },
   check(at) {                                              // tricks that are a state rather than a moment
     const c = controlled;
     if (c && c.onGround && Math.abs(c.y - TRUSS) < 2) this.secret("truss");
@@ -1152,7 +1153,7 @@ class Musician {
   }
   knock(dir) { this.knockT = 1.8; this.lieDir = dir; this.rockT = this.danceT = 0; for (const f of figures) if (f.standOn === this) f.vy = -300; }
   rock() { if (this.awake) { this.rockT = 5; this.danceT = 0; } }
-  dance() { if (this.awake) { this.danceT = 4; this.rockT = 0; } }
+  dance() { if (!this.awake) return; if (this === controlled && this.danceT < 0.5 && Audio.playing && ++GAME.danceN >= 5) GAME.secret("dance"); this.danceT = 4; this.rockT = 0; }
   kick() {
     if (!this.awake || this.knockT > 0 || this.kickT > 0) return;
     this.kickT = 0.4; const d = this.face, x0 = this.x + d * 8, x1 = this.x + d * 90, top = this.y - 115 * this.k, bot = this.y + 4;
