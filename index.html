@@ -304,13 +304,41 @@ body.on-stage { background: var(--black); color: var(--white); font-family: var(
 .hud { display: grid; justify-items: end; gap: 8px; }
 .score { margin: 0; text-align: right; font-size: 12px; line-height: 1.55; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .score b { color: var(--yellow); font-weight: 700; font-variant-numeric: tabular-nums; }
+.score { display: grid; justify-items: end; gap: 2px; }
+.score button { pointer-events: auto; font: inherit; letter-spacing: inherit; text-transform: inherit; color: var(--muted); background: none; border: 0; padding: 2px 0; cursor: pointer; text-decoration: underline dotted rgba(255, 247, 234, .35); text-underline-offset: 4px; }
+.score button:hover { color: var(--white); }
+.info { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; padding: 16px; background: rgba(11, 2, 2, .6); transition: opacity .25s; }
+.info.gone { opacity: 0; pointer-events: none; }
+.info-card { position: relative; width: min(420px, 100%); max-height: calc(100% - 32px); overflow: auto; padding: 26px 24px 22px; border-radius: 22px; background: #1a0604; border: 1.5px solid var(--line); box-shadow: 0 20px 60px rgba(0, 0, 0, .6); font-size: 14px; line-height: 1.5; }
+.info-card h2 { font-family: var(--font-display); font-weight: 400; font-size: 26px; line-height: 1; color: var(--yellow); margin: 0 0 10px; }
+.info-card p { margin: 0 0 14px; color: var(--white); opacity: .85; }
+.info-card h3 { margin: 16px 0 6px; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.info-card ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.info-card li { display: flex; justify-content: space-between; gap: 12px; }
+.info-card li b { color: var(--yellow); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.info-card li.q { display: grid; grid-template-columns: 22px 1fr; gap: 0 8px; justify-content: start; }
+.info-card li.q i { font-style: normal; grid-row: span 2; color: var(--muted); }
+.info-card li.q span { font-weight: 700; }
+.info-card li.q small { color: var(--muted); font-size: 13px; }
+.info-card li.q.done i, .info-card li.q.done span { color: var(--yellow); }
+.info-card li.now span, .info-card li.now b { color: var(--yellow); }
+.info-x { position: absolute; top: 10px; right: 12px; width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid var(--line); background: none; color: var(--white); font-size: 20px; line-height: 1; cursor: pointer; }
+.info-x:hover { border-color: var(--yellow); color: var(--yellow); }
 .toast { position: absolute; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 70px); z-index: 3; max-width: calc(100% - 32px); padding: 10px 18px; border-radius: 999px; background: var(--yellow); color: var(--black); font-weight: 700; font-size: 14px; text-align: center; pointer-events: none; opacity: 0; transform: translate(-50%, -8px); transition: opacity .25s, transform .25s; }
 .toast.on { opacity: 1; transform: translate(-50%, 0); }
 .gate .result { gap: 8px; padding: 28px 30px 26px; border-radius: 22px; background: rgba(11, 2, 2, .78); box-shadow: 0 0 60px rgba(0, 0, 0, .5); }
 .gate .res-lead, .gate .res-unit { color: var(--white); font-size: 17px; font-weight: 500; }
 .gate .res-pct { font-family: var(--font-display); font-size: clamp(68px, 15vw, 128px); line-height: .9; color: var(--yellow); font-variant-numeric: tabular-nums; }
 .gate .res-title { color: var(--yellow); font-size: 20px; font-weight: 700; margin-top: 6px; }
-.gate .res-sec { max-width: 36ch; margin-top: 6px; font-size: 14px; line-height: 1.5; }
+.gate .res-sec { width: min(440px, 100%); margin-top: 10px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 14px; line-height: 1.4; }
+.q-head { display: block; margin-bottom: 8px; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.q-head b { color: var(--yellow); }
+.quests { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 5px 18px; text-align: left; }
+.quests li { color: var(--white); padding-left: 18px; position: relative; }
+.quests li::before { content: "○"; position: absolute; left: 0; color: var(--muted); }
+.quests li.done { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--yellow); text-decoration-thickness: 2px; }
+.quests li.done::before { content: "✓"; color: var(--yellow); }
+.gate .result { max-height: calc(100% - 24px); overflow: auto; }
 .res-btns { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 12px; margin-top: 12px; }
 .share { font: inherit; font-weight: 700; font-size: 15px; color: var(--yellow); background: none; border: 1.5px solid var(--yellow); border-radius: 999px; padding: 12px 22px; cursor: pointer; }
 .share:hover { background: rgba(255, 194, 51, .14); }
@@ -318,7 +346,7 @@ body.on-stage { background: var(--black); color: var(--white); font-family: var(
 
 @media (max-width: 760px) {
   .hud { justify-items: start; }
-  .score { text-align: left; }
+  .score { text-align: left; justify-items: start; }
   .masthead { flex-direction: column; gap: 6px; padding-inline: 16px; }
   .hint { text-align: left; font-size: 12px; }
   .console { padding-inline: 16px; font-size: 11px; }
@@ -443,7 +471,7 @@ body.on-stage { background: var(--black); color: var(--white); font-family: var(
   <header class="masthead">
     <h1 class="band" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Tā nav saule – Pamostos</h1>
     <a class="home" href="#">← Tā nav saule</a>
-    <div class="hud"><p class="score" id="score" hidden></p></div>
+    <div class="hud"><div class="score" id="score" hidden><button type="button" id="chaosBtn"></button></div></div>
   </header>
 
   <div class="pad pad-left" id="padL">
@@ -466,13 +494,20 @@ body.on-stage { background: var(--black); color: var(--white); font-family: var(
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+  <div class="info gone" id="info" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
+    <div class="info-card">
+      <button class="info-x" id="infoX" type="button" aria-label="Aizvērt">×</button>
+      <div id="infoBody"></div>
+    </div>
+  </div>
+
   <div class="gate gone" id="again">
     <div class="gate-inner result">
       <p class="res-lead">Tu izpostīji</p>
       <p class="res-pct" id="resPct">0%</p>
       <p class="res-unit">skatuves</p>
       <p class="res-title" id="resTitle"></p>
-      <p class="res-sec" id="resSec"></p>
+      <div class="res-sec" id="resSec"></div>
       <div class="res-btns">
         <button class="start" id="againBtn">Pamosties vēlreiz</button>
         <button class="share" id="shareBtn" type="button">Dalīties ar rezultātu</button>
@@ -624,16 +659,17 @@ const Audio = {
 const canvas = document.getElementById("game"), ctx = canvas.getContext("2d");
 const mask = document.createElement("canvas"), mctx = mask.getContext("2d");
 const refl = document.createElement("canvas"), rctx = refl.getContext("2d");   // reflection is drawn opaque here, then faded as one layer
-let consoleH = 110, cw = 0, ch = 0, dpr = 1, view = new DOMMatrix(), camX = 0, sc = 1, ox = 0, oy = 0;
+let consoleH = 110, mastH = 70, camY = 0, cw = 0, ch = 0, dpr = 1, view = new DOMMatrix(), camX = 0, sc = 1, ox = 0, oy = 0;
 function resize() {
   if (!canvas.clientWidth) return;
   consoleH = document.getElementById("console").offsetHeight;
+  { const hud = document.querySelector(".masthead"); if (hud) mastH = Math.max(60, hud.getBoundingClientRect().bottom - canvas.getBoundingClientRect().top); }
   document.querySelectorAll(".pad").forEach(p => p.style.bottom = `calc(env(safe-area-inset-bottom, 0px) + ${consoleH + 26}px)`);
   cw = canvas.clientWidth; ch = canvas.clientHeight; dpr = Math.min(devicePixelRatio || 1, 2);
   canvas.width = mask.width = refl.width = Math.round(cw * dpr); canvas.height = mask.height = refl.height = Math.round(ch * dpr);
 }
-new ResizeObserver(resize).observe(canvas); new ResizeObserver(resize).observe(document.getElementById("console")); resize();
-function updateCamera(focusX) {
+new ResizeObserver(resize).observe(canvas); new ResizeObserver(resize).observe(document.getElementById("console")); new ResizeObserver(resize).observe(document.querySelector(".masthead")); resize();
+function updateCamera(focusX, focusTop = FLOOR) {
   const landscape = cw / ch >= 1.2;
   // musicians sit around the middle of the screen; the glossy floor fills the lower half
   const mid = ch * (landscape ? 0.54 : 0.5), span = FLOOR - 60 - (TRUSS + 60);
@@ -643,7 +679,9 @@ function updateCamera(focusX) {
   let want = (W - visW) / 2;
   if (focusX < want + 50) want = focusX - 50; else if (focusX > want + visW - 50) want = focusX - visW + 50;
   ox = 0; camX = Math.abs(camX - want) > 2000 ? want : lerp(camX, want, 0.08);
-  oy = mid - (FLOOR - 60) * sc;
+  const base = mid - (FLOOR - 60) * sc, head = base + (focusTop - 34) * sc, room = mastH + 10;
+  camY = lerp(camY, head < room ? room - head : 0, 0.1);
+  oy = base + camY;
   view = new DOMMatrix([sc * dpr, 0, 0, sc * dpr, (ox - camX * sc) * dpr, oy * dpr]);
 }
 const toWorld = (sx, sy) => ({ x: (sx - ox) / sc + camX, y: (sy - oy) / sc });
@@ -732,9 +770,28 @@ CONFIG.members.forEach(m => {
   if (m.amp.mic) m.amp.micDx = m.x + 17 - m.amp.x;          // where the mic head sits, relative to the amp
 });
 addP(466, 536, FLOOR - 62, "case"); addP(478, 526, FLOOR - 124, "case");   // road cases
-for (let i = 0; i < 5; i++) {                          // scaffolds up to the truss
+// scaffolds up to the truss; five kicks and one tips over (decks gone, it crashes onto the floor)
+const SCAF = [{ l: 10, r: 112 }, { l: W - 112, r: W - 10 }].map(s => ({ ...s, hits: 0, fall: 0, ang: 0, va: 0, wob: 0, wt: 0, landed: false, bump: 0, bt: 0, plats: [] }));
+for (let i = 0; i < 5; i++) {
   const t = FLOOR - 130 * (i + 1), o = (i % 2) * 22;
-  addP(6 + o, 96 + o, t, "scaf"); addP(W - 96 - o, W - 6 - o, t, "scaf");
+  SCAF[0].plats.push(addP(6 + o, 96 + o, t, "scaf")); SCAF[1].plats.push(addP(W - 96 - o, W - 6 - o, t, "scaf"));
+}
+function resetScaf() { for (const s of SCAF) { Object.assign(s, { hits: 0, fall: 0, ang: 0, va: 0, wob: 0, landed: false, bump: 0 }); s.plats.forEach(p => p.gone = false); } }
+function updateScaf(dt) {
+  for (const s of SCAF) {
+    s.wt += dt; s.wob *= Math.exp(-dt * 4); s.bt += dt; s.bump *= Math.exp(-dt * 3);
+    if (!s.fall || s.landed) continue;
+    s.va += (0.8 + 7.5 * Math.sin(Math.abs(s.ang))) * dt; s.ang += s.fall * s.va * dt;
+    if (Math.abs(s.ang) < Math.PI / 2) continue;
+    s.ang = s.fall * Math.PI / 2; s.landed = true; s.bump = 0.09; s.bt = 0;
+    const px = s.fall > 0 ? s.r : s.l, far = px + s.fall * (FLOOR - TRUSS);
+    for (let k = 0; k <= 8; k++) FX.sparks(px + (far - px) * k / 8, FLOOR - 10, 6);
+    FX.flash = Math.max(FX.flash, 0.6); SFX.drums(); SFX.amp();
+    for (const f of figures) {                        // whoever stands where it lands goes down
+      if (f.dragged || f.y < FLOOR - 160) continue;
+      if ((f.x - px) * s.fall > 0 && (f.x - far) * s.fall < 0) { f.knock(s.fall); f.vx = s.fall * 300; f.vy = -380; f.onGround = false; f.touched = true; SFX.body(); }
+    }
+  }
 }
 addP(0, W, TRUSS, "truss");
 // chorus stunt: on every fire cue JZ and Elīna climb the scaffolds, leap onto the PAMOSTOS letters and run across them,
@@ -751,21 +808,26 @@ const GAME = {
   chaos: 0, max: 160, letterKicks: 0, fireN: 0, snap: null, snapLum: -1, snapT: 0, pops: [], toastT: 0,
   titles: [[0, "Pārāk pieklājīgs fans"], [10, "Uzmanīgs skaņu tehniķis"], [30, "Rokenrola māceklis"], [60, "Skaņu tehniķa murgs"], [85, "Skatuves iznīcinātājs"]],
   secrets: [
-    { id: "truss", name: "Augstāk par visiem" }, { id: "head", name: "Lēciens uz galvas" }, { id: "pyramid", name: "Piramīda" },
-    { id: "drums", name: "Bez bungām" }, { id: "amps", name: "Visi kombji gaisā" }, { id: "football", name: "Burtu futbols" },
-    { id: "silence", name: "Pilnīgs klusums" }, { id: "nosign", name: "Bez uzraksta" },
+    { id: "truss", name: "Augstāk par visiem", hint: "Uzkāp pašā augšā uz stalažām." },
+    { id: "head", name: "Lēciens uz galvas", hint: "Uzlec kādam grupas biedram uz galvas." },
+    { id: "pyramid", name: "Piramīda", hint: "Stāvi uz kāda, kurš pats stāv uz vēl kāda." },
+    { id: "drums", name: "Bez bungām", hint: "Iesper pa bungu komplektu." },
+    { id: "amps", name: "Visi kombji gaisā", hint: "Izsper visus kombjus un monitoru." },
+    { id: "football", name: "Burtu futbols", hint: "Iesper pa burtiem uz zemes 5 reizes." },
+    { id: "silence", name: "Pilnīgs klusums", hint: "Panāc, ka neskan neviens instruments." },
+    { id: "nosign", name: "Bez uzraksta", hint: "Visi uzraksta burti uz zemes vienlaikus." },
+    { id: "scaffold", name: "Stalažu gāzējs", hint: "Apgāz stalažas ar 5 spērieniem." },
   ],
-  found: new Set((() => { try { return JSON.parse(localStorage.getItem("tns-pamostos-secrets") || "[]"); } catch (e) { return []; } })()),
+  found: new Set(),
   pct() { return Math.min(100, Math.round(this.chaos / this.max * 100)); },
   title() { const p = this.pct(); let n = this.titles[0][1]; for (const [v, t] of this.titles) if (p >= v) n = t; return n; },
   add(n, x, y) { if (!Audio.playing) return; this.chaos += n; if (x !== undefined) this.pops.push({ x, y, n, t: 0 }); },
   secret(id) {
     if (!Audio.playing || this.found.has(id)) return;
-    this.found.add(id); try { localStorage.setItem("tns-pamostos-secrets", JSON.stringify([...this.found])); } catch (e) {}
-    const s = this.secrets.find(x => x.id === id); this.toast(`Noslēpums atrasts: ${s.name} (${this.found.size}/${this.secrets.length})`); SFX.sparks(0.4);
+    this.found.add(id);                                   // kept quiet during the song; the list shows up at the end
   },
   toast(msg) { const el = document.getElementById("toast"); el.textContent = msg; el.classList.add("on"); clearTimeout(this.toastT); this.toastT = setTimeout(() => el.classList.remove("on"), 2800); },
-  reset() { this.chaos = 0; this.letterKicks = 0; this.fireN = 0; this.snap = null; this.snapLum = -1; this.pops = []; },
+  reset() { this.found = new Set(); this.chaos = 0; this.letterKicks = 0; this.fireN = 0; this.snap = null; this.snapLum = -1; this.pops = []; },
   check(at) {                                              // tricks that are a state rather than a moment
     const c = controlled;
     if (c && c.onGround && Math.abs(c.y - TRUSS) < 2) this.secret("truss");
@@ -785,10 +847,8 @@ const GAME = {
   showResult() {
     document.getElementById("resPct").textContent = this.pct() + "%";
     document.getElementById("resTitle").textContent = this.title();
-    const names = this.secrets.filter(x => this.found.has(x.id)).map(x => x.name);
-    document.getElementById("resSec").textContent = names.length
-      ? `Noslēpumi ${names.length}/${this.secrets.length}: ${names.join(", ")}.`
-      : `Uz skatuves paslēpti ${this.secrets.length} noslēpumi. Vēl neviens nav atrasts.`;
+    document.getElementById("resSec").innerHTML = `<span class="q-head">Side quest <b>${this.found.size}/${this.secrets.length}</b></span><ul class="quests">${
+      this.secrets.map(q => `<li class="${this.found.has(q.id) ? "done" : ""}">${q.name}</li>`).join("")}</ul>`;
   },
   async card() {
     const CW = 1080, CH = 1920, c = document.createElement("canvas"); c.width = CW; c.height = CH; const x = c.getContext("2d");
@@ -804,7 +864,7 @@ const GAME = {
     x.drawImage(pic, 0, 0);
     x.textAlign = "center"; x.textBaseline = "alphabetic";
     const n = this.found.size;
-    if (n) { x.font = "700 34px Onest, sans-serif"; const t = `Noslēpumi ${n}/${this.secrets.length}`, w = x.measureText(t).width + 56; x.fillStyle = "rgba(11,2,2,.7)"; x.beginPath(); x.roundRect(CW / 2 - w / 2, 70, w, 64, 32); x.fill(); x.fillStyle = "#ffc233"; x.fillText(t, CW / 2, 114); }
+    if (n) { x.font = "700 34px Onest, sans-serif"; const t = `Side quest ${n}/${this.secrets.length}`, w = x.measureText(t).width + 56; x.fillStyle = "rgba(11,2,2,.7)"; x.beginPath(); x.roundRect(CW / 2 - w / 2, 70, w, 64, 32); x.fill(); x.fillStyle = "#ffc233"; x.fillText(t, CW / 2, 114); }
     x.shadowColor = "rgba(255,170,40,.55)"; x.shadowBlur = 40;
     x.fillStyle = "#ffc233"; x.font = "400 54px Bungee, sans-serif"; x.fillText(CONFIG.band.toUpperCase(), CW / 2, 1150);
     x.font = "400 140px Bungee, sans-serif"; x.fillText(CONFIG.song.toUpperCase(), CW / 2, 1290);
@@ -1107,6 +1167,11 @@ class Musician {
       l.rest = false; l.vx = d * rnd(650, 950); l.vy = rnd(-950, -700); l.vr = d * rnd(7, 13); l.kicked = true;
       FX.sparks(l.cx, l.cy, 10); SFX.letter(); GAME.letterKicks++; GAME.add(3, l.cx, l.cy - 50);
     }
+    for (const s of SCAF) {                               // kick a scaffold: it rattles; the fifth kick tips it over
+      if (s.fall || !hits(s.l, s.r, TRUSS, FLOOR)) continue;
+      s.hits++; s.wob = 0.035 + s.hits * 0.012; SFX.body(); FX.sparks(clamp(this.x + d * 40, s.l, s.r), this.y - 60, 6); GAME.add(2, (s.l + s.r) / 2, this.y - 150);
+      if (s.hits >= 5) { s.fall = d; s.va = 0.5; s.plats.forEach(p => p.gone = true); SFX.amp(); GAME.add(12, (s.l + s.r) / 2, this.y - 200); GAME.secret("scaffold"); }
+    }
     if (!KIT.gone && hits(KIT_X - 90, KIT_X + 90, RISER.t - 130, RISER.t + 4)) {   // kick the drums: the kit flies apart
       KIT.gone = true; KIT.muted = true; SFX.drums(); GAME.add(15, KIT_X, RISER.t - 150); GAME.secret("drums");
       for (const p of KIT_PARTS) if (p.on) { p.on = false; FX.debris.push({ part: p, x: KIT_X + p.x * KIT_S, y: RISER.t + p.y * KIT_S, vx: d * rnd(300, 800), vy: rnd(-900, -500), rot: 0, vr: rnd(-14, 14), rest: false }); }
@@ -1185,7 +1250,7 @@ class Musician {
     return o;
   }
   stunt(o, at) {                                             // returns the moves while the stunt drives, or null to let the usual brain run
-    const S = STUNT.crew[this.cfg.id]; if (!S || !SIGN.letters.length || !this.inst.held) return null;
+    const S = STUNT.crew[this.cfg.id]; if (!S || !SIGN.letters.length || !this.inst.held || SCAF[S.dir > 0 ? 0 : 1].fall) return null;
     const F = CONFIG.cues.fire.find(f => at >= f - STUNT.lead && at < f + 4);
     if (F === undefined) { if (this.stuntCue !== null) { this.stuntCue = null; this.stuntPlat = null; this.stuntAim = null; } return null; }
     if (this.stuntCue !== F) { this.stuntCue = F; this.stuntStep = 0; this.stuntDone = false; this.stuntPlat = null; this.stuntAim = null; }
@@ -1594,12 +1659,16 @@ function drawProps(c) {
   c.lineWidth = 4; c.beginPath(); for (let x = -40; x < W + 60; x += 32) { c.moveTo(x, TRUSS + 3); c.lineTo(x + 16, TRUSS + 35); c.lineTo(x + 32, TRUSS + 3); } c.stroke();
   // scaffolds
   c.lineWidth = 6;
-  for (const [l, r] of [[10, 112], [W - 112, W - 10]]) {
+  for (const s of SCAF) {
+    const { l, r } = s, px = s.fall > 0 ? r : s.fall < 0 ? l : (l + r) / 2;
+    const a = s.ang + s.wob * Math.sin(s.wt * 34) - s.fall * s.bump * Math.abs(Math.sin(s.bt * 14));
+    c.save(); c.translate(px, FLOOR); c.rotate(a); c.translate(-px, -FLOOR);
     c.beginPath(); c.moveTo(l, FLOOR); c.lineTo(l, TRUSS); c.moveTo(r, FLOOR); c.lineTo(r, TRUSS); c.stroke();
     c.lineWidth = 3; c.beginPath(); for (let y = FLOOR; y > TRUSS + 40; y -= 130) { c.moveTo(l, y); c.lineTo(r, y - 130); } c.stroke(); c.lineWidth = 6;
+    for (const p of s.plats) c.fillRect(p.l, p.t, p.r - p.l, 8);
+    c.restore();
   }
   for (const p of platforms) {
-    if (p.kind === "scaf") c.fillRect(p.l, p.t, p.r - p.l, 8);
     if (p.kind === "case") { c.beginPath(); c.roundRect(p.l, p.t, p.r - p.l, Math.min(FLOOR - p.t, 72), 4); c.fill(); }
   }
   c.fillRect(RISER.l, RISER.t, RISER.r - RISER.l, FLOOR - RISER.t);
@@ -1782,6 +1851,7 @@ const figures = CONFIG.members.map((m, i) => new Musician(m, i));
 const drummer = figures.find(f => f.isDrummer);
 const byId = id => figures.find(f => f.cfg.id === id);
 function placeAll() {                                     // put the whole stage back together
+  resetScaf();
   for (const m of CONFIG.members) if (m.amp) { m.amp.fly = null; m.amp.box.gone = false; Object.assign(m.amp.input, m.amp.home); }
   KIT_PARTS.forEach(p => p.on = true); FX.debris = []; KIT.gone = false; KIT.muted = false;
   for (const l of SIGN.letters) { l.fallen = false; l.fallT = 0; l.rest = false; l.plat.gone = false; l.swing = 0; l.swingV = 0; l.rising = null; }
@@ -1832,7 +1902,7 @@ const UI = {
   },
   refresh() {
     this.btns.forEach(([b, tr]) => { const l = typeof tr.label === "function" ? tr.label() : tr.label; b.innerHTML = `<i>${tr.key}</i>${l}`; });
-    const sc = $("score"); sc.hidden = !Audio.started; sc.innerHTML = `Bardaks <b>${GAME.pct()}%</b><br>Noslēpumi <b>${GAME.found.size}/${GAME.secrets.length}</b>`;
+    $("score").hidden = !Audio.started; $("chaosBtn").innerHTML = `Bardaks <b>${GAME.pct()}%</b>`;
   },
   sync() {
     $("play").textContent = Audio.playing ? "Pauze" : "Atskaņot";
@@ -1895,6 +1965,25 @@ Audio.load(n => { $("loadText").textContent = `Ielādē celiņus ${n}/${CONFIG.m
   .then(() => { CAST.ready = true; CAST.build(); $("start").textContent = "Pamosties"; $("start").disabled = !CAST.chosen; $("loadText").hidden = true; document.querySelector("#gate .bar").hidden = true; })
   .catch(err => { $("start").textContent = "Neizdevās"; $("loadText").textContent = location.protocol === "file:" ? "No datora atvērtā failā mūzika neielādējas. Lapai jābūt hostingā (tanavsaule.lv)." : `Neizdevās ielādēt ${err.message}.`; });
 $("shareBtn").addEventListener("click", () => GAME.share());
+// tap Bardaks in the corner: what it is and how to get more
+const INFO = {
+  open(kind) {
+    let h;
+    if (kind === "chaos") {
+      const pts = [["Iespert pa bungām", 15], ["Apgāzt stalažas", "12 + 5×2"], ["Iespert pa kombi", 10], ["Iespert grupas biedram", 8], ["Uzlēkt kādam uz galvas", 6], ["Uzlēkt uz burta", 5], ["Izraut kabeli", 4], ["Iespert pa burtu uz zemes", 3], ["Mest instrumentu gaisā", 3], ["Uguņi", 1]];
+      const p = GAME.pct(), cur = GAME.title();
+      h = `<h2 id="infoTitle">Bardaks</h2><p>Cik pamatīgi tu izjauc skatuvi dziesmas laikā. Par katru nedarbu krājas punkti, un beigās tu saņem titulu. Šobrīd: <b style="color:var(--yellow)">${p}%</b>.</p>
+        <h3>Punkti</h3><ul>${pts.map(([a, b]) => `<li><span>${a}</span><b>+${b}</b></li>`).join("")}</ul>
+        <h3>Tituli</h3><ul>${GAME.titles.map(([v, t]) => `<li class="${t === cur ? "now" : ""}"><span>${t}</span><b>${v}%</b></li>`).join("")}</ul>`;
+    }
+    $("infoBody").innerHTML = h; $("info").classList.remove("gone"); $("infoX").focus();
+  },
+  close() { $("info").classList.add("gone"); },
+};
+$("chaosBtn").addEventListener("click", () => INFO.open("chaos"));
+$("infoX").addEventListener("click", () => INFO.close());
+$("info").addEventListener("click", e => { if (e.target === $("info")) INFO.close(); });
+window.addEventListener("keydown", e => { if (e.key === "Escape") INFO.close(); });
 // before the song: pick one of the five silhouettes; that is who you play until the end
 const CAST = {
   chosen: null, ready: false,
@@ -1953,7 +2042,7 @@ function frame(now) {
   figures.forEach(f => f.physics(dt, t));
   figures.forEach(f => f.animate(dt, t, beat));
   figures.forEach(f => { if (f.cable && f.jackWorld) f.cable.update(dt, f.jackWorld); Audio.setOn(f.i, stemOn(f)); });
-  FX.update(dt); updateProps(dt);
+  FX.update(dt); updateProps(dt); updateScaf(dt);
   if (Audio.playing && at > lastAt && at - lastAt < 0.5) {
     for (const ft of CONFIG.cues.fire) if (lastAt < ft && at >= ft) FX.fire("all", 2);
     if (lastAt < CONFIG.cues.confetti && at >= CONFIG.cues.confetti) Confetti.start();
@@ -1976,7 +2065,7 @@ function frame(now) {
   Light.ambient = lerp(Light.ambient, amb, Math.min(1, dt * 8));
   Light.sign = lerp(Light.sign, Math.max(cue.sign, FX.flash), Math.min(1, dt * 3));
 
-  updateCamera(controlled ? controlled.x : W / 2);
+  updateCamera(controlled ? controlled.x : W / 2, controlled && Audio.started ? controlled.box().t : FLOOR);
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = C.black; ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.setTransform(view);
   drawBackdrop(ctx);
