@@ -688,7 +688,7 @@ function updateCamera(focusX, focusTop = FLOOR) {
   if (focusX < want + 50) want = focusX - 50; else if (focusX > want + visW - 50) want = focusX - visW + 50;
   ox = 0; camX = Math.abs(camX - want) > 2000 ? want : lerp(camX, want, 0.08);
   const base = mid - (FLOOR - 60) * sc, head = base + (focusTop - 34) * sc, room = mastH + 50;
-  camY = lerp(camY, head < room ? room - head : 0, 0.1);
+  camY = lerp(camY, head < room ? room - head : 0, controlled && controlled.skyDive ? 0.35 : 0.1);
   oy = base + camY;
   view = new DOMMatrix([sc * dpr, 0, 0, sc * dpr, (ox - camX * sc) * dpr, oy * dpr]);
 }
@@ -1137,7 +1137,7 @@ class Musician {
   }
   reset() {
     this.x = this.home; this.y = this.isDrummer ? RISER.t : FLOOR; this.vx = this.vy = 0; this.dx = 0;
-    this.onGround = true; this.standOn = null; this.crouch = 0; this.seat = this.isDrummer ? 1 : 0; this.dropT = 0; this.subbing = false; this.ampTask = null;
+    this.onGround = true; this.standOn = null; this.crouch = 0; this.seat = this.isDrummer ? 1 : 0; this.dropT = 0; this.subbing = false; this.ampTask = null; this.skyDive = false; this.wasOnSat = false;
     this.knockT = 0; this.knockAmt = 0; this.dragged = false; this.touched = false; this.inst.held = true;
     this.ai.goal = null; this.ai.idle = rnd(1, 4);
     this.stuntCue = null; this.stuntStep = 0; this.stuntDone = false; this.stuntPlat = null; this.stuntAim = null;
@@ -1391,10 +1391,18 @@ class Musician {
     }
     this.x = clamp(this.x, -EDGE + hw, W + EDGE - hw);          // a little room to wander off stage left and right
 
+    // leave Saturn and you drop straight through everything, all the way down to the stage
+    const onSat = this.onGround && Math.abs(this.y - SAT.p.t) < 2 && this.x > SAT.p.l - 4 && this.x < SAT.p.r + 4;
+    if (this.wasOnSat && !this.onGround && this === controlled) this.skyDive = true;
+    this.wasOnSat = onSat;
+    if (this.skyDive) this.vy = Math.min(this.vy, 2400);
     const prevB = this.y, vIn = this.vy;
     this.y += this.vy * dt; this.onGround = false; this.standOn = null;
-    if (this.y >= FLOOR) { this.y = FLOOR; this.vy = 0; this.onGround = true; }
-    if (vIn >= 0 && this.dropT <= 0) {
+    if (this.y >= FLOOR) {
+      if (this.skyDive) { this.skyDive = false; for (let k = 0; k < 3; k++) FX.sparks(this.x + rnd(-30, 30), FLOOR - 6, 10); FX.flash = Math.max(FX.flash, 0.7); SFX.amp(); SFX.drums(); }
+      this.y = FLOOR; this.vy = 0; this.onGround = true;
+    }
+    if (vIn >= 0 && this.dropT <= 0 && !this.skyDive) {
       const boss = this === controlled;                 // only the musician you control can wreck the stage
       for (const p of platforms) {
         if (p.gone || (this.stuntPlat && p !== this.stuntPlat) || (p.kind === "kit" && this.isDrummer) || (p.kind === "letter" && !this.stuntPlat && !boss)) continue;   // mid-stunt only the aimed letter counts
