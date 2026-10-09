@@ -331,8 +331,8 @@ body.on-stage { background: var(--black); color: var(--white); font-family: var(
 .info-card li.now span, .info-card li.now b { color: var(--yellow); }
 .info-x { position: absolute; top: 10px; right: 12px; width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid var(--line); background: none; color: var(--white); font-size: 20px; line-height: 1; cursor: pointer; }
 .info-x:hover { border-color: var(--yellow); color: var(--yellow); }
-.toast { position: absolute; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 70px); z-index: 3; max-width: calc(100% - 32px); padding: 10px 18px; border-radius: 999px; background: var(--yellow); color: var(--black); font-weight: 700; font-size: 14px; text-align: center; pointer-events: none; opacity: 0; transform: translate(-50%, -8px); transition: opacity .25s, transform .25s; }
-.toast.on { opacity: 1; transform: translate(-50%, 0); }
+.toast { position: absolute; right: 24px; top: calc(env(safe-area-inset-top, 0px) + 74px); z-index: 3; max-width: min(320px, calc(100% - 48px)); padding: 9px 16px; border-radius: 16px; background: var(--yellow); color: var(--black); font-weight: 700; font-size: 13px; line-height: 1.3; text-align: right; pointer-events: none; opacity: 0; transform: translateY(-8px); transition: opacity .25s, transform .25s; }
+.toast.on { opacity: 1; transform: translateY(0); }
 .gate .result { gap: 8px; padding: 28px 30px 26px; border-radius: 22px; background: rgba(11, 2, 2, .78); box-shadow: 0 0 60px rgba(0, 0, 0, .5); }
 .gate .res-lead, .gate .res-unit { color: var(--white); font-size: 17px; font-weight: 500; }
 .gate .res-pct { font-family: var(--font-display); font-size: clamp(68px, 15vw, 128px); line-height: .9; color: var(--yellow); font-variant-numeric: tabular-nums; }
@@ -360,6 +360,7 @@ body.on-stage { background: var(--black); color: var(--white); font-family: var(
   .row { gap: 12px; }
   .tricks { gap: 4px 14px; }
   .keyhint { display: none; }
+  .toast { right: 16px; top: calc(env(safe-area-inset-top, 0px) + 18px); max-width: calc(100% - 190px); font-size: 12px; padding: 8px 12px; }
   .cast { gap: 0; }
   .cast canvas { width: 64px; height: 80px; }
   .cast button { font-size: 11px; padding-inline: 2px; }
@@ -686,7 +687,7 @@ function updateCamera(focusX, focusTop = FLOOR) {
   let want = (W - visW) / 2;
   if (focusX < want + 50) want = focusX - 50; else if (focusX > want + visW - 50) want = focusX - visW + 50;
   ox = 0; camX = Math.abs(camX - want) > 2000 ? want : lerp(camX, want, 0.08);
-  const base = mid - (FLOOR - 60) * sc, head = base + (focusTop - 34) * sc, room = mastH + 10;
+  const base = mid - (FLOOR - 60) * sc, head = base + (focusTop - 34) * sc, room = mastH + 50;
   camY = lerp(camY, head < room ? room - head : 0, 0.1);
   oy = base + camY;
   view = new DOMMatrix([sc * dpr, 0, 0, sc * dpr, (ox - camX * sc) * dpr, oy * dpr]);
@@ -1201,7 +1202,7 @@ class Musician {
 
   // ---- decisions: the player, or the musician's own little brain ----
   think(dt, t) {
-    const me = this === controlled && t - lastPlayerInput < 5;
+    const me = this === controlled;                          // your musician never wanders off on his own
     const o = { l: false, r: false, jump: false, down: false, drop: false };
     if (me) {
       o.l = input.left; o.r = input.right; o.jump = input.jumpBuf > 0; o.down = input.down; o.drop = input.down && input.downT > 0.25;
@@ -1678,6 +1679,14 @@ function drawBackdrop(c) {
   const wall = c.createLinearGradient(0, -150, 0, FLOOR);
   wall.addColorStop(0, C.skyTop); wall.addColorStop(0.55, C.skyMid); wall.addColorStop(1, C.horizon);
   c.fillStyle = wall; c.fillRect(-1500, -600, W + 3000, FLOOR + 600);
+  // up high the wall is dark: give a raised musician's spot the same orange glow behind him as on the stage
+  figures.forEach((f, i) => {
+    const on = (Light.spots[i] || 0) * (f.awake ? 1 : 0.35), hgt = FLOOR - 62 * f.k - spotY[i];
+    if (on < 0.02 || hgt < 120) return;
+    const a = on * clamp((hgt - 120) / 260, 0, 1), r = 125 * f.k, g = c.createRadialGradient(spotX[i], spotY[i], 0, spotX[i], spotY[i], r);
+    g.addColorStop(0, `rgba(255,106,34,${a})`); g.addColorStop(0.6, `rgba(255,106,34,${a * 0.85})`); g.addColorStop(1, "rgba(255,106,34,0)");
+    c.fillStyle = g; c.fillRect(spotX[i] - r, spotY[i] - r, r * 2, r * 2);
+  });
   const fl = c.createLinearGradient(0, FLOOR, 0, FLOOR + 320);
   fl.addColorStop(0, C.floorTop); fl.addColorStop(1, C.floorBottom);
   c.fillStyle = fl; c.fillRect(-1500, FLOOR, W + 3000, H + 600);
@@ -1918,9 +1927,64 @@ function updateKit(dt) {
     if (!mine) { d.x = lerp(d.x, KIT_X, 0.5); }
   }
 }
+// birds perch on the truss; climb up there and they take fright and fly off (they come back later)
+const BIRDS = [150, 196, 238, 470, 522, 600].map((hx, i) => ({ hx, x: hx, y: TRUSS, st: "sit", vx: 0, vy: 0, face: i % 2 ? -1 : 1, ph: rnd(0, 6), peck: rnd(1, 5), awayT: 0 }));
+function resetBirds() { for (const b of BIRDS) Object.assign(b, { x: b.hx, y: TRUSS, st: "sit", vx: 0, vy: 0, awayT: 0 }); }
+function updateBirds(dt) {
+  const c = controlled;
+  const near = b => c && c.y < TRUSS + 130 && Math.abs(c.x - b.x) < 125;
+  let scared = false;
+  for (const b of BIRDS) {
+    b.ph += dt;
+    if (b.st === "sit") {
+      b.peck -= dt; if (b.peck < 0) { b.peck = rnd(1.5, 5); if (Math.random() < 0.4) b.face *= -1; }
+      if (near(b) || (c && c.dragged && Math.hypot(c.x - b.x, c.y - b.y) < 220)) {
+        b.st = "fly"; const dir = c && c.x > b.x ? -1 : c && c.x < b.x ? 1 : (Math.random() < 0.5 ? -1 : 1);
+        b.face = dir; b.vx = dir * rnd(170, 260); b.vy = rnd(-150, -90); b.ph = rnd(0, 1); scared = true;
+      }
+    } else if (b.st === "fly") {
+      b.vy -= 45 * dt; b.x += b.vx * dt; b.y += b.vy * dt;
+      if (b.y < TRUSS - 900 || b.x < -900 || b.x > W + 900) { b.st = "away"; b.awayT = 0; }
+    } else if (b.st === "away") {
+      b.awayT += dt;
+      if (b.awayT > 25 && !(c && c.y < TRUSS + 260 && Math.abs(c.x - b.hx) < 300)) { b.st = "land"; b.x = b.hx + (Math.random() < 0.5 ? -1 : 1) * 700; b.y = TRUSS - 420; }
+    } else {                                              // gliding back to its spot
+      const dx = b.hx - b.x, dy = TRUSS - b.y, d = Math.hypot(dx, dy); b.face = dx < 0 ? -1 : 1;
+      if (d < 6) { b.st = "sit"; b.x = b.hx; b.y = TRUSS; continue; }
+      const sp = Math.min(d * 2, 300); b.x += dx / d * sp * dt; b.y += dy / d * sp * dt;
+    }
+  }
+  if (scared) for (let i = 0; i < 7; i++) SFX.hiss(0.09, "bandpass", rnd(1800, 3200), 1.5, rnd(0.03, 0.06), i * 0.045);   // wing flutter
+}
+function drawBirds(c) {
+  c.fillStyle = C.sil; c.strokeStyle = C.sil; c.lineCap = "round"; c.lineJoin = "round";
+  for (const b of BIRDS) {
+    if (b.st === "away") continue;
+    c.save(); c.translate(b.x, b.y); c.scale(b.face, 1);
+    const flying = b.st !== "sit";
+    if (!flying) {
+      const pk = b.peck < 0.3 ? Math.sin(b.peck / 0.3 * Math.PI) : 0;      // a quick peck now and then
+      c.beginPath(); c.ellipse(0, -7, 8, 5, -0.15, 0, Math.PI * 2); c.fill();                     // body
+      c.beginPath(); c.moveTo(-6, -6); c.lineTo(-14, -3); c.lineTo(-12, -8); c.closePath(); c.fill(); // tail
+      const hx = 7 + pk * 2, hy = -12 + pk * 6;
+      c.beginPath(); c.arc(hx, hy, 3.6, 0, Math.PI * 2); c.fill();                                // head
+      c.beginPath(); c.moveTo(hx + 3, hy - 1); c.lineTo(hx + 7.5, hy + 0.5); c.lineTo(hx + 3, hy + 1.6); c.closePath(); c.fill();   // beak
+      c.lineWidth = 1.4; c.beginPath(); c.moveTo(-1, -3); c.lineTo(-2, 0); c.moveTo(2, -3); c.lineTo(2, 0); c.stroke();   // legs
+    } else {
+      const f = Math.sin(b.ph * 26);
+      c.rotate(-0.25);
+      c.beginPath(); c.ellipse(0, 0, 8, 4.5, 0, 0, Math.PI * 2); c.fill();
+      c.beginPath(); c.arc(8, -2, 3.4, 0, Math.PI * 2); c.fill();
+      c.beginPath(); c.moveTo(11, -3); c.lineTo(15, -1.5); c.lineTo(11, -0.5); c.closePath(); c.fill();
+      c.beginPath(); c.moveTo(-6, 0); c.lineTo(-14, 3); c.lineTo(-13, -3); c.closePath(); c.fill();
+      c.lineWidth = 3; c.beginPath(); c.moveTo(-2, -1); c.quadraticCurveTo(2, -10 * f, -6, -16 * f); c.stroke();   // wing up and down
+    }
+    c.restore();
+  }
+}
 const kitPlayer = () => { const p = byId("palu"); return p && p.subbing && p.seat > 0.5 ? p : drummer; };
 function placeAll() {                                     // put the whole stage back together
-  resetScaf();
+  resetScaf(); if (typeof resetBirds === "function") resetBirds();
   for (const m of CONFIG.members) if (m.amp) { m.amp.fly = null; m.amp.box.gone = false; Object.assign(m.amp.input, m.amp.home); }
   KIT_PARTS.forEach(p => p.on = true); FX.debris = []; KIT.gone = false; KIT.muted = false; KIT.build = null; KIT.downT = 0; if (typeof drummer !== "undefined" && drummer) drummer.homing = false;
   for (const l of SIGN.letters) { l.fallen = false; l.fallT = 0; l.rest = false; l.plat.gone = false; l.swing = 0; l.swingV = 0; l.rising = null; }
@@ -2112,7 +2176,7 @@ function frame(now) {
   const t = now / 1000, at = Audio.time(), beat = Math.max(0, (at - CONFIG.beatOffset) * CONFIG.bpm / 60);
   input.jumpBuf = Math.max(0, input.jumpBuf - dt); input.downT = input.down ? input.downT + dt : 0;
 
-  updateSub(dt); updateKit(dt);
+  updateSub(dt); updateKit(dt); updateBirds(dt);
   figures.forEach(f => f.physics(dt, t));
   figures.forEach(f => f.animate(dt, t, beat));
   figures.forEach(f => { if (f.cable && f.jackWorld) f.cable.update(dt, f.jackWorld); Audio.setOn(f.i, stemOn(f)); });
@@ -2155,6 +2219,7 @@ function frame(now) {
     ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 0.55; ctx.drawImage(refl, 0, 0); ctx.restore();
     ctx.setTransform(view); floorFade(ctx); }
   drawProps(ctx);
+  drawBirds(ctx);
   drawSign(ctx, t, beat, Audio.started ? Light.sign : 0, Light.finale);
   drummer.draw(ctx); if (kp !== drummer) kp.draw(ctx); ctx.setTransform(view); drawKit(ctx, kp, t);
   figures.forEach(f => { if (f !== drummer && f !== kp) f.draw(ctx); });
