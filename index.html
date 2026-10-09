@@ -827,6 +827,7 @@ const GAME = {
     { id: "scaffold", name: "Stalažu gāzējs", hint: "Apgāz stalažas ar 5 spērieniem." },
     { id: "dance", name: "Dance vibes", hint: "Nodejo 5 dejas." },
     { id: "birds", name: "Aizbiedē putnus", hint: "Uzkāp augšā pie putniem uz trases." },
+    { id: "saturn", name: "Līdz sapņa malai", hint: "Uzlec uz Saturna pašā debesu augšā." },
     { id: "moon", name: "Tā nav saule", hint: "Pa mākoņiem uzlec līdz mēnesim un nogāz to." },
   ],
   found: new Set(),
@@ -845,6 +846,7 @@ const GAME = {
     const c = controlled;
     if (c && c.onGround && Math.abs(c.y - TRUSS) < 2) this.secret("truss");
     if (c && c.standOn && c.standOn.standOn) this.secret("pyramid");
+    if (c && c.onGround && Math.abs(c.y - SAT.p.t) < 2 && c.x > SAT.p.l - 4 && c.x < SAT.p.r + 4) this.secret("saturn");
     if (CONFIG.members.every(m => !m.amp || m.amp.fly)) this.secret("amps");
     if (SIGN.letters.length && SIGN.letters.every(l => l.fallen && !l.rising)) this.secret("nosign");
     if (at > CONFIG.cues.bandIn + 3 && figures.every(f => !stemOn(f))) this.secret("silence");
@@ -1701,7 +1703,7 @@ function drawBackdrop(c) {
   // back-lit wall: dark at the top, glowing orange-red at the horizon; glossy floor below
   const wall = c.createLinearGradient(0, -150, 0, FLOOR);
   wall.addColorStop(0, C.skyTop); wall.addColorStop(0.55, C.skyMid); wall.addColorStop(1, C.horizon);
-  c.fillStyle = wall; c.fillRect(-1500, -2600, W + 3000, FLOOR + 2600);
+  c.fillStyle = wall; c.fillRect(-1500, -3600, W + 3000, FLOOR + 3600);
   { const band = c.createLinearGradient(0, TRUSS - 150, 0, TRUSS + 6);   // a faint warm glow along the top of the truss: the birds read against it
     band.addColorStop(0, "rgba(255,106,34,0)"); band.addColorStop(0.7, "rgba(255,106,34,.32)"); band.addColorStop(1, "rgba(255,130,50,.55)");
     c.fillStyle = band; c.fillRect(-1500, TRUSS - 150, W + 3000, 156); }
@@ -1960,15 +1962,18 @@ function updateKit(dt) {
 }
 // above the truss: clouds to hop up on, and at the very top the moon, stars and the Big Dipper. Jump on the moon and down it comes.
 const CLOUDS = [{ x: 235, t: 66, w: 120 }, { x: 420, t: -70, w: 128 }, { x: 300, t: -206, w: 116 },
-  { x: 150, t: -338, w: 112 }, { x: 318, t: -470, w: 118 }, { x: 480, t: -580, w: 112 }, { x: 395, t: -698, w: 120 }, { x: 205, t: -830, w: 114 }].map(c => ({ ...c, p: addP(c.x - c.w / 2 + 8, c.x + c.w / 2 - 8, c.t, "cloud") }));
+  { x: 150, t: -338, w: 112 }, { x: 318, t: -470, w: 118 }, { x: 480, t: -580, w: 112 }, { x: 395, t: -698, w: 120 }, { x: 205, t: -830, w: 114 },
+  { x: 560, t: -1100, w: 120 }, { x: 390, t: -1230, w: 120 }, { x: 210, t: -1360, w: 116 }, { x: 380, t: -1490, w: 120 }, { x: 560, t: -1620, w: 116 }].map(c => ({ ...c, p: addP(c.x - c.w / 2 + 8, c.x + c.w / 2 - 8, c.t, "cloud") }));
 const MOON = { hx: 474, hy: -300, r: 52, x: 474, y: -300, st: "up", t: 0, vx: 0, vy: 0, rot: 0, vr: 0, wob: 0 };
 MOON.p = addP(MOON.hx - 40, MOON.hx + 40, MOON.hy - MOON.r + 3, "moon");
-const STARS = (() => { let sd = 7; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647; return Array.from({ length: 420 }, (_, i) => ({ x: -400 + r() * (W + 800), y: i < 190 ? -1100 + r() * 1040 : -1900 + r() * 1000, s: 0.6 + r() * 1.3, ph: r() * 6 })); })();
+const STARS = (() => { let sd = 7; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647; return Array.from({ length: 1500 }, (_, i) => ({ x: -400 + r() * (W + 800), y: i < 190 ? -1100 + r() * 1040 : i < 420 ? -1900 + r() * 1000 : -2900 + r() * 1800, s: 0.6 + r() * 1.3, ph: r() * 6 })); })();
 // Jupiter, way up above the clouds: hop on and stand on the big planet
 const JUP = { x: 400, y: -900, r: 74 }; JUP.p = addP(JUP.x - 52, JUP.x + 52, JUP.y - JUP.r + 4, "moon");
+// and above it all Saturn with its rings: you can stand on it too
+const SAT = { x: 380, y: -1700, r: 58 }; SAT.p = addP(SAT.x - 42, SAT.x + 42, SAT.y - SAT.r + 4, "moon");
 const MOON_LAND = { combo: 1, stack: 1, wedge: 1, scaf: 1, case: 1, riser: 1 };
 const SHOOT = { t: 2, x: 0, y: 0, vx: 0, vy: 0, life: 0, max: 0 };
-const DIPPER = [[0, 0], [44, -10], [84, -4], [116, 14], [122, 52], [176, 60], [188, 20]].map(([x, y]) => [500 + x, -1130 + y]);
+const DIPPER = [[0, 0], [44, -10], [84, -4], [116, 14], [122, 52], [176, 60], [188, 20]].map(([x, y]) => [40 + x, -1160 + y]);
 function resetSky() { Object.assign(MOON, { x: MOON.hx, y: MOON.hy, st: "up", t: 0, vx: 0, vy: 0, rot: 0, vr: 0, wob: 0 }); MOON.p.gone = false; }
 function updateSky(dt) {
   const M = MOON;
@@ -2000,7 +2005,7 @@ function updateSky(dt) {
   }
   // a shooting star every five seconds or so
   SHOOT.t -= dt;
-  if (SHOOT.t <= 0) { SHOOT.t = rnd(4.2, 5.8); const d = Math.random() < 0.5 ? -1 : 1; Object.assign(SHOOT, { x: W / 2 - d * rnd(100, 380), y: rnd(-1750, -250), vx: d * rnd(520, 700), vy: rnd(180, 300), life: 0, max: rnd(0.8, 1.1) }); }
+  if (SHOOT.t <= 0) { SHOOT.t = rnd(4.2, 5.8); const d = Math.random() < 0.5 ? -1 : 1; Object.assign(SHOOT, { x: W / 2 - d * rnd(100, 380), y: rnd(-2700, -250), vx: d * rnd(520, 700), vy: rnd(180, 300), life: 0, max: rnd(0.8, 1.1) }); }
   if (SHOOT.max) SHOOT.life += dt;
 }
 function cloudShape(c, x, t, w) {                        // a puffy cloud: a flat-ish base and round tops
@@ -2035,6 +2040,24 @@ function drawSky(c) {
     c.fillStyle = sh; c.fillRect(-J.r, -J.r, J.r * 2, J.r * 2);
     c.restore();
   }
+  {                                                       // Saturn: the back of the rings, the planet, then the front of the rings
+    const S = SAT, R = S.r, ring = (from, to) => {
+      for (const [k, w, col] of [[1.55, 9, "rgba(214,190,150,.9)"], [1.78, 7, "rgba(236,214,172,.95)"], [2.02, 6, "rgba(196,168,128,.85)"], [2.2, 3, "rgba(230,206,160,.7)"]]) {
+        c.strokeStyle = col; c.lineWidth = w; c.beginPath(); c.ellipse(0, 0, R * k, R * k * 0.26, 0, from, to); c.stroke();
+      }
+    };
+    c.save(); c.translate(S.x, S.y); c.rotate(-0.22);
+    ring(Math.PI, Math.PI * 2);
+    c.save(); c.beginPath(); c.arc(0, 0, R, 0, Math.PI * 2); c.clip();
+    c.fillStyle = "#ead7a6"; c.fillRect(-R, -R, R * 2, R * 2);
+    for (const [y, h, col] of [[-0.8, 0.2, "#d8bd86"], [-0.42, 0.14, "#cfae78"], [-0.12, 0.08, "#f2e2b8"], [0.18, 0.16, "#c9a26c"], [0.55, 0.14, "#d6b783"], [0.8, 0.2, "#bf9864"]]) { c.fillStyle = col; c.fillRect(-R, y * R, R * 2, h * R); }
+    const sh = c.createRadialGradient(-R * 0.4, -R * 0.4, R * 0.2, 0, 0, R); sh.addColorStop(0, "rgba(255,255,255,.14)"); sh.addColorStop(0.7, "rgba(0,0,0,0)"); sh.addColorStop(1, "rgba(40,20,0,.45)");
+    c.fillStyle = sh; c.fillRect(-R, -R, R * 2, R * 2);
+    c.fillStyle = "rgba(60,30,0,.35)"; c.beginPath(); c.ellipse(0, R * 0.12, R * 1.6, R * 0.12, 0, 0, Math.PI * 2); c.fill();   // the rings' shadow on the planet
+    c.restore();
+    ring(0, Math.PI);
+    c.restore();
+  }
   const M = MOON;
   if (M.st === "gone") return;
   c.save(); c.translate(M.x, M.y); c.rotate(M.rot + M.wob);
@@ -2046,14 +2069,22 @@ function drawSky(c) {
   c.restore();
 }
 function lightSky(disc) {                                 // into the light map: clouds and the moon show in full colour
-  disc(JUP.x, JUP.y, JUP.r + 6, 1, 0.9); disc(JUP.x, JUP.y, JUP.r * 2.6, 0.3, 0.2);
+  disc(JUP.x, JUP.y, JUP.r + 6, 1, 0.9);
+  disc(SAT.x, SAT.y, SAT.r * 2.4, 1, 0.75); disc(SAT.x, SAT.y, SAT.r * 3.2, 0.3, 0.3); disc(JUP.x, JUP.y, JUP.r * 2.6, 0.3, 0.2);
   for (const cl of CLOUDS) disc(cl.x, cl.t + 10, cl.w * 0.58, 0.95, 0.72);
   const M = MOON; if (M.st === "gone") return;
   disc(M.x, M.y, M.r + 8, 1, 0.85); disc(M.x, M.y, M.r * 5, 0.38, 0.15);   // the moon and its light
 }
 function glowSky(c, t) {                                  // additive: stars, the Big Dipper, the moon's halo
+  const top = -oy / sc - 20, bot = (ch - oy) / sc + 20;   // only what is on screen
+  if (top < -1300) {                                     // the Milky Way: a faint diagonal haze way up
+    c.save(); c.translate(W / 2, -2100); c.rotate(-0.5);
+    const mw = c.createLinearGradient(0, -260, 0, 260); mw.addColorStop(0, "rgba(255,236,210,0)"); mw.addColorStop(0.5, "rgba(255,236,210,.13)"); mw.addColorStop(1, "rgba(255,236,210,0)");
+    c.fillStyle = mw; c.fillRect(-1600, -260, 3200, 520); c.restore();
+  }
   c.fillStyle = "#fff4dc";
-  for (const st of STARS) { c.globalAlpha = 0.35 + 0.35 * Math.sin(t * 1.7 + st.ph); c.beginPath(); c.arc(st.x, st.y, st.s, 0, Math.PI * 2); c.fill(); }
+  for (const st of STARS) {
+    if (st.y < top || st.y > bot) continue; c.globalAlpha = 0.35 + 0.35 * Math.sin(t * 1.7 + st.ph); c.beginPath(); c.arc(st.x, st.y, st.s, 0, Math.PI * 2); c.fill(); }
   c.globalAlpha = 0.22; c.strokeStyle = "#fff4dc"; c.lineWidth = 1.2; c.beginPath();
   DIPPER.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.lineTo(DIPPER[3][0], DIPPER[3][1]); c.stroke();
   for (const [x, y] of DIPPER) { c.globalAlpha = 0.95; c.beginPath(); c.arc(x, y, 2.6, 0, Math.PI * 2); c.fill(); c.globalAlpha = 0.25; c.beginPath(); c.arc(x, y, 7, 0, Math.PI * 2); c.fill(); }
