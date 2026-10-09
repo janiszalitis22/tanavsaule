@@ -828,6 +828,16 @@ const STUNT = {
   },
 };
 const qName = q => typeof q.name === "function" ? q.name() : q.name;
+// the stage with the PAMOSTOS sign cut out of the screen, whatever the screen shape: the top of the share picture
+function stageCrop() {
+  const x0 = -10, x1 = W + 10, y0 = SIGN.y - 160, y1 = FLOOR + 120;
+  const sx = ((x0 - camX) * sc + ox) * dpr, sy = (y0 * sc + oy) * dpr, sw = (x1 - x0) * sc * dpr, sh = (y1 - y0) * sc * dpr;
+  const out = document.createElement("canvas"); out.width = Math.max(1, Math.round(sw)); out.height = Math.max(1, Math.round(sh));
+  const o = out.getContext("2d"); o.fillStyle = C.black; o.fillRect(0, 0, out.width, out.height);
+  const cx0 = Math.max(0, sx), cy0 = Math.max(0, sy), cx1 = Math.min(canvas.width, sx + sw), cy1 = Math.min(canvas.height, sy + sh);   // stay inside the canvas (Safari)
+  if (cx1 > cx0 && cy1 > cy0) o.drawImage(canvas, cx0, cy0, cx1 - cx0, cy1 - cy0, cx0 - sx, cy0 - sy, cx1 - cx0, cy1 - cy0);
+  return out;
+}
 // GAME: a chaos score for the mess you make, eight hidden tricks, and a picture of the result to share
 const GAME = {
   chaos: 0, max: 160, notes: [], danceN: 0, letterKicks: 0, fireN: 0, snap: null, snapLum: -1, snapT: 0, pops: [], toastT: 0,
@@ -879,8 +889,8 @@ const GAME = {
     const m = this.meter || (this.meter = document.createElement("canvas")); m.width = m.height = 24; const mx = m.getContext("2d", { willReadFrequently: true });
     mx.drawImage(canvas, 0, 0, 24, 24); const d = mx.getImageData(0, 0, 24, 24).data; let lum = 0;
     for (let i = 0; i < d.length; i += 4) lum += d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11;
-    if (lum <= this.snapLum) return; this.snapLum = lum;
-    const c = this.snap || document.createElement("canvas"); c.width = canvas.width; c.height = canvas.height; c.getContext("2d").drawImage(canvas, 0, 0); this.snap = c;
+    if (lum <= this.snapLum || camY > 4) return; this.snapLum = lum;   // only frames where the stage itself is in view
+    this.snap = stageCrop();
   },
   showResult() {
     document.getElementById("resPct").textContent = this.pct() + "%";
@@ -894,7 +904,7 @@ const GAME = {
     try { await Promise.all([document.fonts.load("400 100px Bungee"), document.fonts.load("700 48px Onest"), document.fonts.load("500 48px Onest")]); } catch (e) {}
     const bg = x.createLinearGradient(0, 0, 0, CH); bg.addColorStop(0, "#1c0302"); bg.addColorStop(0.6, "#5e0d07"); bg.addColorStop(1, "#8e1a08");
     x.fillStyle = bg; x.fillRect(0, 0, CW, CH);
-    const src = this.snap || canvas, ph = 900, ar = CW / ph, sr = src.width / src.height;
+    const src = this.snap || stageCrop(), ph = 1000, ar = CW / ph, sr = src.width / src.height;
     let sw, sh; if (sr > ar) { sh = src.height; sw = sh * ar; } else { sw = src.width; sh = sw / ar; }
     const pic = document.createElement("canvas"); pic.width = CW; pic.height = ph; const px = pic.getContext("2d");
     px.drawImage(src, (src.width - sw) / 2, (src.height - sh) / 2, sw, sh, 0, 0, CW, ph);
@@ -903,37 +913,22 @@ const GAME = {
     x.drawImage(pic, 0, 0);
     x.textAlign = "center"; x.textBaseline = "alphabetic";
     x.shadowColor = "rgba(255,170,40,.55)"; x.shadowBlur = 40;
-    x.fillStyle = "#ffc233"; x.font = "400 50px Bungee, sans-serif"; x.fillText(CONFIG.band.toUpperCase(), CW / 2, 930);
-    x.font = "400 124px Bungee, sans-serif"; x.fillText(CONFIG.song.toUpperCase(), CW / 2, 1055);
+    x.fillStyle = "#ffc233"; x.font = "400 50px Bungee, sans-serif"; x.fillText(CONFIG.band.toUpperCase(), CW / 2, 1070);
+    x.font = "400 124px Bungee, sans-serif"; x.fillText(CONFIG.song.toUpperCase(), CW / 2, 1195);
     x.shadowBlur = 0;
     // three numbers in a row: score, the mess, side quests
     const stats = [["Score", this.fmtScore()], ["Bardaks", this.pct() + "%"], ["Side quest", `${this.found.size}/${this.secrets.length}`]];
     stats.forEach(([k, v], i) => {
       const cx = CW / 2 + (i - 1) * 340;
-      x.fillStyle = "rgba(255,247,234,.7)"; x.font = "700 28px Onest, sans-serif"; x.fillText(k.toUpperCase(), cx, 1155);
-      x.fillStyle = "#ffc233"; x.font = `400 ${v.length > 6 ? 62 : 76}px Bungee, sans-serif`; x.fillText(v, cx, 1240);
+      x.fillStyle = "rgba(255,247,234,.7)"; x.font = "700 28px Onest, sans-serif"; x.fillText(k.toUpperCase(), cx, 1320);
+      x.fillStyle = "#ffc233"; x.font = `400 ${v.length > 6 ? 62 : 76}px Bungee, sans-serif`; x.fillText(v, cx, 1405);
     });
     x.strokeStyle = "rgba(255,247,234,.18)"; x.lineWidth = 2;
-    for (const dx of [-170, 170]) { x.beginPath(); x.moveTo(CW / 2 + dx, 1130); x.lineTo(CW / 2 + dx, 1250); x.stroke(); }
-    x.fillStyle = "#fff7ea"; x.font = "700 44px Onest, sans-serif"; x.fillText(this.title(), CW / 2, 1325);
-    // every side quest as a pill: done ones solid yellow with a tick, the rest faint outlines
-    x.font = "700 27px Onest, sans-serif"; x.textBaseline = "middle";
-    const pills = this.secrets.map(q => { const done = this.found.has(q.id), t = (done ? "✓ " : "") + qName(q); return { t, done, w: x.measureText(t).width + 44 }; });
-    const rows = [[]]; let rw = 0; const maxW = 980, gap = 12, pH = 52;
-    for (const pl of pills) { if (rw + pl.w > maxW && rows[rows.length - 1].length) { rows.push([]); rw = 0; } rows[rows.length - 1].push(pl); rw += pl.w + gap; }
-    let py = 1395;
-    for (const row of rows) {
-      let px = CW / 2 - (row.reduce((a, pl) => a + pl.w, 0) + gap * (row.length - 1)) / 2;
-      for (const pl of row) {
-        x.beginPath(); x.roundRect(px, py, pl.w, pH, pH / 2);
-        if (pl.done) { x.fillStyle = "#ffc233"; x.fill(); x.fillStyle = "#0b0202"; }
-        else { x.strokeStyle = "rgba(255,247,234,.28)"; x.lineWidth = 2; x.stroke(); x.fillStyle = "rgba(255,247,234,.45)"; }
-        x.fillText(pl.t, px + pl.w / 2, py + pH / 2 + 1); px += pl.w + gap;
-      }
-      py += pH + gap;
-    }
+    for (const dx of [-170, 170]) { x.beginPath(); x.moveTo(CW / 2 + dx, 1295); x.lineTo(CW / 2 + dx, 1415); x.stroke(); }
+    { let fs = 84; x.font = `400 ${fs}px Bungee, sans-serif`; while (x.measureText(this.title()).width > 980 && fs > 40) { fs -= 2; x.font = `400 ${fs}px Bungee, sans-serif`; }   // the title, big
+      x.shadowColor = "rgba(255,170,40,.6)"; x.shadowBlur = 36; x.fillStyle = "#fff7ea"; x.fillText(this.title(), CW / 2, 1610); x.shadowBlur = 0; }
     x.textBaseline = "alphabetic";
-    x.fillStyle = "rgba(255,247,234,.75)"; x.font = "700 38px Onest, sans-serif"; x.fillText("tanavsaule.lv/pamostos", CW / 2, 1880);
+    x.fillStyle = "rgba(255,247,234,.75)"; x.font = "700 38px Onest, sans-serif"; x.fillText("tanavsaule.lv/pamostos", CW / 2, 1840);
     return await new Promise(r => c.toBlob(r, "image/png"));
   },
   async share() {
