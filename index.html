@@ -2170,6 +2170,15 @@ function glowSky(c, t) {                                  // additive: stars, th
     c.globalAlpha = a; c.fillStyle = "#fff4dc"; c.beginPath(); c.arc(hx, hy, 2.4, 0, Math.PI * 2); c.fill();
   }
   { const J = JUP, h = c.createRadialGradient(J.x, J.y, J.r * 0.9, J.x, J.y, J.r * 2.2); h.addColorStop(0, "rgba(255,210,160,.22)"); h.addColorStop(1, "rgba(255,210,160,0)"); c.globalAlpha = 1; c.fillStyle = h; c.fillRect(J.x - J.r * 2.2, J.y - J.r * 2.2, J.r * 4.4, J.r * 4.4); }
+  if (MOON.st !== "up" && MOON.st !== "wobble") {        // the fallen moon's shine in the glossy floor: a soft glow and a few shimmering streaks
+    const M = MOON, ry = FLOOR + Math.max(M.r * 0.9, FLOOR - M.y) * 0.85, fade = clamp(1 - (FLOOR - M.y - M.r) / 260, 0.35, 1);
+    c.save(); c.translate(M.x, ry); c.scale(1, 0.55);
+    const g = c.createRadialGradient(0, 0, 0, 0, 0, M.r * 1.5); g.addColorStop(0, `rgba(255,240,210,${0.75 * fade})`); g.addColorStop(0.5, `rgba(255,230,190,${0.4 * fade})`); g.addColorStop(1, "rgba(255,230,190,0)");
+    c.globalAlpha = 1; c.fillStyle = g; c.beginPath(); c.arc(0, 0, M.r * 1.5, 0, Math.PI * 2); c.fill(); c.restore();
+    c.fillStyle = "#fff4dc";
+    for (let i = 0; i < 6; i++) { const yy = FLOOR + 10 + i * 13, w = M.r * (1.1 - i * 0.12) * (0.8 + 0.2 * Math.sin(t * 2.3 + i * 1.7)); c.globalAlpha = (0.65 - i * 0.08) * fade; c.fillRect(M.x - w / 2 + Math.sin(t * 1.6 + i) * 6, yy, w, 3); }
+    c.globalAlpha = 1;
+  }
   const M = MOON;
   if (M.st !== "gone") { const h = c.createRadialGradient(M.x, M.y, M.r * 0.8, M.x, M.y, M.r * 3); h.addColorStop(0, "rgba(255,236,200,.35)"); h.addColorStop(1, "rgba(255,236,200,0)"); c.globalAlpha = 1; c.fillStyle = h; c.fillRect(M.x - M.r * 3, M.y - M.r * 3, M.r * 6, M.r * 6); }
   c.globalAlpha = 1;
