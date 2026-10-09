@@ -827,6 +827,7 @@ const GAME = {
     { id: "scaffold", name: "Stalažu gāzējs", hint: "Apgāz stalažas ar 5 spērieniem." },
     { id: "dance", name: "Dance vibes", hint: "Nodejo 5 dejas." },
     { id: "birds", name: "Aizbiedē putnus", hint: "Uzkāp augšā pie putniem uz trases." },
+    { id: "moon", name: "Tā nav saule", hint: "Pa mākoņiem uzlec līdz mēnesim un nogāz to." },
   ],
   found: new Set(),
   pct() { return Math.min(100, Math.round(this.chaos / this.max * 100)); },
@@ -902,7 +903,7 @@ const GAME = {
 const SURFACES = platforms.filter(p => p.kind !== "kit" && p.kind !== "riser").concat([{ l: 60, r: W - 60, t: FLOOR, kind: "floor" }]);
 function surfaceUnder(x, y) {
   let best = FLOOR;
-  for (const p of platforms) if (!p.gone && p.kind !== "letter" && x > p.l && x < p.r && p.t >= y - 2 && p.t < best) best = p.t;
+  for (const p of platforms) if (!p.gone && p.kind !== "letter" && p.kind !== "cloud" && p.kind !== "moon" && x > p.l && x < p.r && p.t >= y - 2 && p.t < best) best = p.t;
   return best;
 }
 
@@ -1252,7 +1253,7 @@ class Musician {
     } else if (dy < 0) {
       let best = null, bs = 1e9;
       for (const p of platforms) {
-        if (p.gone || p.kind === "kit" || p.kind === "letter" || p.t >= this.y - 12 || p.t < this.y - 180) continue;
+        if (p.gone || p.kind === "kit" || p.kind === "letter" || p.kind === "cloud" || p.kind === "moon" || p.t >= this.y - 12 || p.t < this.y - 180) continue;
         const cx = clamp(g.x, p.l + 20, p.r - 20), sc = Math.abs(cx - this.x) + Math.abs(p.t - g.y) * 0.6;
         if (sc < bs) { bs = sc; best = p; }
       }
@@ -1378,6 +1379,7 @@ class Musician {
         if (this.x > p.l - 4 && this.x < p.r + 4 && prevB <= p.t + 2 && this.y >= p.t) {
           this.y = p.t; this.vy = 0; this.onGround = true;
           if (p.kind === "kit" && vIn > 250 && boss) knockKitPart(this.x);
+          if (p.kind === "moon" && boss && MOON.st === "up") { MOON.st = "wobble"; MOON.t = 0.55; SFX.body(); }
           if (p.kind === "letter" && !(p.letter.fallT > 0)) { p.letter.fallT = 0.2; if (boss && !this.stuntPlat) GAME.add(5, this.x, this.y - 140); }
         }
       }
@@ -1679,7 +1681,7 @@ function drawBackdrop(c) {
   // back-lit wall: dark at the top, glowing orange-red at the horizon; glossy floor below
   const wall = c.createLinearGradient(0, -150, 0, FLOOR);
   wall.addColorStop(0, C.skyTop); wall.addColorStop(0.55, C.skyMid); wall.addColorStop(1, C.horizon);
-  c.fillStyle = wall; c.fillRect(-1500, -600, W + 3000, FLOOR + 600);
+  c.fillStyle = wall; c.fillRect(-1500, -1400, W + 3000, FLOOR + 1400);
   { const band = c.createLinearGradient(0, TRUSS - 150, 0, TRUSS + 6);   // a faint warm glow along the top of the truss: the birds read against it
     band.addColorStop(0, "rgba(255,106,34,0)"); band.addColorStop(0.7, "rgba(255,106,34,.32)"); band.addColorStop(1, "rgba(255,130,50,.55)");
     c.fillStyle = band; c.fillRect(-1500, TRUSS - 150, W + 3000, 156); }
@@ -1837,6 +1839,7 @@ function drawLighting(t, beat) {
   { mctx.setTransform(view); const g = mctx.createLinearGradient(0, TRUSS - 150, 0, TRUSS + 6);   // light the truss-top band
     g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(0.7, "rgba(255,255,255,.55)"); g.addColorStop(1, "rgba(255,255,255,.75)");
     mctx.fillStyle = g; mctx.fillRect(-1500, TRUSS - 150, W + 3000, 156); }
+  lightSky(disc);
   for (const l of SIGN.letters) for (const [x, y, on] of l.lit) { mctx.globalAlpha = on * 0.6; mctx.drawImage(GLOW_WHITE, x - 16, y - 16, 32, 32); }
   for (const p of FX.parts) { mctx.globalAlpha = clamp(p.life / p.max, 0, 1); const s = p.kind === "fire" ? p.size * 2.4 : 40; mctx.drawImage(GLOW_WHITE, p.x - s / 2, p.y - s / 2, s, s); }
   mctx.globalAlpha = 1; mctx.globalCompositeOperation = "source-over";
@@ -1850,6 +1853,7 @@ function drawLighting(t, beat) {
     for (let j = 0; j < 4; j++) { const fx = ((t * (18 + j * 7) + j * 240) % (W + 700)) - 350, fy = FLOOR - 60 - j * 70; ctx.globalAlpha = 0.2 * maxOn; ctx.drawImage(FOG, fx - 300, fy - 100, 700, 220); }
     ctx.restore(); ctx.globalAlpha = 1;
   }
+  glowSky(ctx, t);
   const haze = 0.05 + Light.ambient * 0.25;
   for (let i = 0; i < 8; i++) { const fx = ((t * (12 + i * 4) + i * 330) % (W + 1000)) - 500, fy = FLOOR - 40 - (i % 4) * 150; ctx.globalAlpha = haze; ctx.drawImage(FOG, fx - 400, fy - 170, 900, 340); }
   for (const l of SIGN.letters) for (const [x, y, on] of l.lit) {
@@ -1934,6 +1938,75 @@ function updateKit(dt) {
     if (!mine) { d.x = lerp(d.x, KIT_X, 0.5); }
   }
 }
+// above the truss: clouds to hop up on, and at the very top the moon, stars and the Big Dipper. Jump on the moon and down it comes.
+const CLOUDS = [{ x: 235, t: 66, w: 120 }, { x: 420, t: -70, w: 128 }, { x: 300, t: -206, w: 116 }].map(c => ({ ...c, p: addP(c.x - c.w / 2 + 8, c.x + c.w / 2 - 8, c.t, "cloud") }));
+const MOON = { hx: 470, hy: -318, r: 38, x: 470, y: -318, st: "up", t: 0, vx: 0, vy: 0, rot: 0, vr: 0, wob: 0 };
+MOON.p = addP(MOON.hx - 32, MOON.hx + 32, MOON.hy - MOON.r + 3, "moon");
+const STARS = (() => { let sd = 7; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647; return Array.from({ length: 70 }, () => ({ x: -300 + r() * (W + 600), y: -760 + r() * 690, s: 0.6 + r() * 1.3, ph: r() * 6 })); })();
+const DIPPER = [[0, 0], [44, -10], [84, -4], [116, 14], [122, 52], [176, 60], [188, 20]].map(([x, y]) => [96 + x, -470 + y]);
+function resetSky() { Object.assign(MOON, { x: MOON.hx, y: MOON.hy, st: "up", t: 0, vx: 0, vy: 0, rot: 0, vr: 0, wob: 0 }); MOON.p.gone = false; }
+function updateSky(dt) {
+  const M = MOON;
+  if (M.st === "wobble") { M.t -= dt; M.wob = Math.sin(M.t * 40) * 0.12; if (M.t <= 0) { M.st = "fall"; M.p.gone = true; M.vx = rnd(-70, 70); M.vy = -120; M.vr = rnd(-3, 3); M.wob = 0; } }
+  else if (M.st === "fall" || M.st === "roll") {
+    M.vy += G * 0.8 * dt; M.x += M.vx * dt; M.y += M.vy * dt; M.rot += M.vr * dt;
+    if (M.x < -EDGE + M.r || M.x > W + EDGE - M.r) { M.vx *= -0.6; M.x = clamp(M.x, -EDGE + M.r, W + EDGE - M.r); }
+    if (M.y + M.r >= FLOOR) {
+      M.y = FLOOR - M.r;
+      if (M.st === "fall") {                               // the big landing
+        M.st = "roll"; M.vx = M.vx || rnd(-1, 1) * 160; M.vr = M.vx / M.r;
+        for (let k = 0; k < 3; k++) FX.sparks(M.x + rnd(-30, 30), FLOOR - 10, 10);
+        FX.flash = Math.max(FX.flash, 1); SFX.drums(); SFX.amp();
+        for (const f of figures) if (!f.dragged && Math.abs(f.x - M.x) < 80 && f.y > FLOOR - 200) { f.knock(f.x < M.x ? -1 : 1); f.vx = (f.x < M.x ? -1 : 1) * 360; f.vy = -420; f.onGround = false; f.touched = true; }
+        GAME.add(20, M.x, FLOOR - 120); GAME.secret("moon");
+      }
+      M.vy = Math.abs(M.vy) > 260 ? -Math.abs(M.vy) * 0.3 : 0; M.vx *= 0.985; M.vr = M.vx / M.r;
+      if (Math.abs(M.vx) < 6 && M.vy === 0) M.st = "down";
+    }
+  }
+}
+function cloudShape(c, x, t, w) {                        // a puffy cloud: a flat-ish base and round tops
+  const h = w * 0.34;
+  c.beginPath();
+  c.moveTo(x - w / 2, t + h * 0.55);
+  c.quadraticCurveTo(x - w / 2 - 6, t + h * 0.1, x - w * 0.3, t + h * 0.05);
+  c.arc(x - w * 0.16, t + h * 0.05, w * 0.17, Math.PI * 1.05, Math.PI * 1.9);
+  c.arc(x + w * 0.08, t - h * 0.05, w * 0.21, Math.PI * 1.1, Math.PI * 1.95);
+  c.arc(x + w * 0.3, t + h * 0.12, w * 0.15, Math.PI * 1.2, Math.PI * 2.05);
+  c.quadraticCurveTo(x + w / 2 + 6, t + h * 0.6, x + w * 0.36, t + h * 0.72);
+  c.lineTo(x - w * 0.38, t + h * 0.72); c.closePath();
+}
+function drawSky(c) {
+  for (const cl of CLOUDS) {                              // moonlit clouds
+    const g = c.createLinearGradient(0, cl.t - cl.w * 0.15, 0, cl.t + cl.w * 0.3);
+    g.addColorStop(0, "#ffd9b8"); g.addColorStop(0.45, "#e98a6a"); g.addColorStop(1, "#6e1f22");
+    c.fillStyle = g; cloudShape(c, cl.x, cl.t + 4, cl.w); c.fill();
+  }
+  const M = MOON;
+  if (M.st === "gone") return;
+  c.save(); c.translate(M.x, M.y); c.rotate(M.rot + M.wob);
+  const mg = c.createRadialGradient(-M.r * 0.3, -M.r * 0.3, 2, 0, 0, M.r);
+  mg.addColorStop(0, "#fff8e8"); mg.addColorStop(1, "#f3d9a8");
+  c.fillStyle = mg; c.beginPath(); c.arc(0, 0, M.r, 0, Math.PI * 2); c.fill();
+  c.fillStyle = "rgba(170,120,80,.28)";                   // craters
+  for (const [x, y, r] of [[-12, -8, 8], [10, 10, 6], [14, -14, 4], [-6, 16, 5], [2, -2, 3]]) { c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); }
+  c.restore();
+}
+function lightSky(disc) {                                 // into the light map: clouds and the moon show in full colour
+  for (const cl of CLOUDS) disc(cl.x, cl.t + 10, cl.w * 0.58, 0.95, 0.72);
+  const M = MOON; if (M.st === "gone") return;
+  disc(M.x, M.y, M.r + 8, 1, 0.85); disc(M.x, M.y, M.r * 5, 0.38, 0.15);   // the moon and its light
+}
+function glowSky(c, t) {                                  // additive: stars, the Big Dipper, the moon's halo
+  c.fillStyle = "#fff4dc";
+  for (const st of STARS) { c.globalAlpha = 0.35 + 0.35 * Math.sin(t * 1.7 + st.ph); c.beginPath(); c.arc(st.x, st.y, st.s, 0, Math.PI * 2); c.fill(); }
+  c.globalAlpha = 0.22; c.strokeStyle = "#fff4dc"; c.lineWidth = 1.2; c.beginPath();
+  DIPPER.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.lineTo(DIPPER[3][0], DIPPER[3][1]); c.stroke();
+  for (const [x, y] of DIPPER) { c.globalAlpha = 0.95; c.beginPath(); c.arc(x, y, 2.6, 0, Math.PI * 2); c.fill(); c.globalAlpha = 0.25; c.beginPath(); c.arc(x, y, 7, 0, Math.PI * 2); c.fill(); }
+  const M = MOON;
+  if (M.st !== "gone") { const h = c.createRadialGradient(M.x, M.y, M.r * 0.8, M.x, M.y, M.r * 3); h.addColorStop(0, "rgba(255,236,200,.35)"); h.addColorStop(1, "rgba(255,236,200,0)"); c.globalAlpha = 1; c.fillStyle = h; c.fillRect(M.x - M.r * 3, M.y - M.r * 3, M.r * 6, M.r * 6); }
+  c.globalAlpha = 1;
+}
 // birds perch on the truss; climb up there and they take fright and fly off (they come back later)
 const BIRDS = [150, 196, 238, 470, 522, 600].map((hx, i) => ({ hx, x: hx, y: TRUSS, st: "sit", vx: 0, vy: 0, face: i % 2 ? -1 : 1, ph: rnd(0, 6), peck: rnd(1, 5), awayT: 0 }));
 function resetBirds() { for (const b of BIRDS) Object.assign(b, { x: b.hx, y: TRUSS, st: "sit", vx: 0, vy: 0, awayT: 0 }); }
@@ -1992,7 +2065,7 @@ function drawBirds(c) {
 }
 const kitPlayer = () => { const p = byId("palu"); return p && p.subbing && p.seat > 0.5 ? p : drummer; };
 function placeAll() {                                     // put the whole stage back together
-  resetScaf(); if (typeof resetBirds === "function") resetBirds();
+  resetScaf(); if (typeof resetBirds === "function") { resetBirds(); resetSky(); }
   for (const m of CONFIG.members) if (m.amp) { m.amp.fly = null; m.amp.box.gone = false; Object.assign(m.amp.input, m.amp.home); }
   KIT_PARTS.forEach(p => p.on = true); FX.debris = []; KIT.gone = false; KIT.muted = false; KIT.build = null; KIT.downT = 0; if (typeof drummer !== "undefined" && drummer) drummer.homing = false;
   for (const l of SIGN.letters) { l.fallen = false; l.fallT = 0; l.rest = false; l.plat.gone = false; l.swing = 0; l.swingV = 0; l.rising = null; }
@@ -2115,7 +2188,7 @@ const INFO = {
   open(kind) {
     let h;
     if (kind === "chaos") {
-      const pts = [["Iespert pa bungām", 15], ["Apgāzt stalažas", "12 + 5×2"], ["Iespert pa kombi", 10], ["Iespert grupas biedram", 8], ["Uzlēkt kādam uz galvas", 6], ["Uzlēkt uz burta", 5], ["Izraut kabeli", 4], ["Iespert pa burtu uz zemes", 3], ["Mest instrumentu gaisā", 3]];
+      const pts = [["Nogāzt mēnesi", 20], ["Iespert pa bungām", 15], ["Apgāzt stalažas", "12 + 5×2"], ["Iespert pa kombi", 10], ["Iespert grupas biedram", 8], ["Uzlēkt kādam uz galvas", 6], ["Uzlēkt uz burta", 5], ["Izraut kabeli", 4], ["Iespert pa burtu uz zemes", 3], ["Mest instrumentu gaisā", 3]];
       const p = GAME.pct(), cur = GAME.title();
       h = `<h2 id="infoTitle">Bardaks</h2><p>Cik pamatīgi tu izjauc skatuvi dziesmas laikā. Par katru nedarbu krājas punkti, un beigās tu saņem titulu. Šobrīd: <b style="color:var(--yellow)">${p}%</b>.</p>
         <h3>Punkti</h3><ul>${pts.map(([a, b]) => `<li><span>${a}</span><b>+${b}</b></li>`).join("")}</ul>
@@ -2184,7 +2257,7 @@ function frame(now) {
   const t = now / 1000, at = Audio.time(), beat = Math.max(0, (at - CONFIG.beatOffset) * CONFIG.bpm / 60);
   input.jumpBuf = Math.max(0, input.jumpBuf - dt); input.downT = input.down ? input.downT + dt : 0;
 
-  updateSub(dt); updateKit(dt); updateBirds(dt);
+  updateSub(dt); updateKit(dt); updateBirds(dt); updateSky(dt);
   figures.forEach(f => f.physics(dt, t));
   figures.forEach(f => f.animate(dt, t, beat));
   figures.forEach(f => { if (f.cable && f.jackWorld) f.cable.update(dt, f.jackWorld); Audio.setOn(f.i, stemOn(f)); });
@@ -2227,7 +2300,7 @@ function frame(now) {
     ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 0.55; ctx.drawImage(refl, 0, 0); ctx.restore();
     ctx.setTransform(view); floorFade(ctx); }
   drawProps(ctx);
-  drawBirds(ctx);
+  drawSky(ctx); drawBirds(ctx);
   drawSign(ctx, t, beat, Audio.started ? Light.sign : 0, Light.finale);
   drummer.draw(ctx); if (kp !== drummer) kp.draw(ctx); ctx.setTransform(view); drawKit(ctx, kp, t);
   figures.forEach(f => { if (f !== drummer && f !== kp) f.draw(ctx); });
