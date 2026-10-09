@@ -831,7 +831,7 @@ const GAME = {
   secret(id) {
     if (!Audio.playing || this.found.has(id)) return;
     this.found.add(id);                                   // only the counter ticks during the song; the full list shows up at the end
-    const q = document.getElementById("questN"); if (q) { q.classList.remove("bump"); void q.offsetWidth; q.classList.add("bump"); } SFX.sparks(0.4);
+    const q = document.getElementById("questN"); if (q) { q.classList.remove("bump"); void q.offsetWidth; q.classList.add("bump"); clearTimeout(this.bumpT); this.bumpT = setTimeout(() => q.classList.remove("bump"), 1000); } SFX.sparks(0.4);
     const s = this.secrets.find(x => x.id === id); this.toast(`Side quest: ${s.name} ✓`);
   },
   toast(msg) { const el = document.getElementById("toast"); el.textContent = msg; el.classList.add("on"); clearTimeout(this.toastT); this.toastT = setTimeout(() => el.classList.remove("on"), 2800); },
@@ -1207,6 +1207,11 @@ class Musician {
       if (o.l || o.r || o.jump || o.down) this.touched = true;       // the player moved him: the drummer stays wherever he is taken
       if ((o.l || o.r || o.jump) && !this.awake) this.setAwake(true);
       this.stuntPlat = null; this.stuntAim = null;
+      return o;
+    }
+    if (this.isDrummer && this.homing && this.awake && this.knockT <= 0 && !this.dragged) {   // walk back to the kicked-over kit
+      if (Math.abs(this.x - KIT_X) > 30) { if (this.x < KIT_X) o.r = true; else o.l = true; }
+      else if (this.y < RISER.t - 4 && this.onGround) o.drop = true;
       return o;
     }
     if (this.isDrummer || !this.awake || this.knockT > 0 || this.dragged || !Audio.playing) { this.stuntPlat = null; this.stuntAim = null; return o; }
@@ -1890,11 +1895,32 @@ function updateSub(dt) {
     p.subbing = false; p.ai.goal = { x: d.x > p.x ? RISER.l - 50 : Math.max(p.home, RISER.r + 50), y: FLOOR }; p.ai.moveT = 99; p.ai.idle = 0;
   }
 }
+// a kicked-over kit: five seconds later Edžus comes back and puts it together again, piece by piece, and plays on
+function updateKit(dt) {
+  const d = drummer;
+  if (KIT.build) {                                       // pieces snap back one at a time
+    KIT.build.t -= dt; if (KIT.build.t > 0) return;
+    const p = KIT.build.left.shift();
+    if (p) { p.on = true; FX.sparks(KIT_X + p.x * KIT_S, RISER.t + p.y * KIT_S, 5); SFX.drumBit(p.kind); KIT.build.t = 0.13; return; }
+    KIT.build = null; KIT.muted = false; return;
+  }
+  if (!KIT.gone) { KIT.downT = 0; return; }
+  if (Audio.playing) KIT.downT = (KIT.downT || 0) + dt;
+  if (KIT.downT < 5) return;
+  const mine = controlled === d;
+  if (!mine) d.homing = true;
+  if (mine || (d.atKit() && d.awake && d.knockT <= 0) || KIT.downT > 14) {
+    d.homing = false; KIT.gone = false; KIT.muted = true; KIT.downT = 0;
+    FX.debris = FX.debris.filter(x => !(x.part && (KIT_PARTS.includes(x.part) || x.part.kind === "kick")));
+    KIT_PARTS.forEach(p => p.on = false); KIT.build = { t: 0.35, left: KIT_PARTS.slice() };
+    if (!mine) { d.x = lerp(d.x, KIT_X, 0.5); }
+  }
+}
 const kitPlayer = () => { const p = byId("palu"); return p && p.subbing && p.seat > 0.5 ? p : drummer; };
 function placeAll() {                                     // put the whole stage back together
   resetScaf();
   for (const m of CONFIG.members) if (m.amp) { m.amp.fly = null; m.amp.box.gone = false; Object.assign(m.amp.input, m.amp.home); }
-  KIT_PARTS.forEach(p => p.on = true); FX.debris = []; KIT.gone = false; KIT.muted = false;
+  KIT_PARTS.forEach(p => p.on = true); FX.debris = []; KIT.gone = false; KIT.muted = false; KIT.build = null; KIT.downT = 0; if (typeof drummer !== "undefined" && drummer) drummer.homing = false;
   for (const l of SIGN.letters) { l.fallen = false; l.fallT = 0; l.rest = false; l.plat.gone = false; l.swing = 0; l.swingV = 0; l.rising = null; }
   figures.forEach(f => { f.reset(); f.setAwake(true); f.animate(0.016, 0, 0); });
   figures.forEach(f => { if (f.cable) f.cable.reset(f.jackWorld); });
@@ -1942,7 +1968,9 @@ const UI = {
   },
   refresh() {
     this.btns.forEach(([b, tr]) => { const l = typeof tr.label === "function" ? tr.label() : tr.label; b.innerHTML = `<i>${tr.key}</i>${l}`; });
-    $("score").hidden = !Audio.started; $("chaosBtn").innerHTML = `Bardaks <b>${GAME.pct()}%</b>`; $("questN").innerHTML = `Side quest <b>${GAME.found.size}/${GAME.secrets.length}</b>`;
+    $("score").hidden = !Audio.started; const ch = `Bardaks <b>${GAME.pct()}%</b>`, qn = `Side quest <b>${GAME.found.size}/${GAME.secrets.length}</b>`;
+    if ($("chaosBtn").innerHTML !== ch) $("chaosBtn").innerHTML = ch;
+    if ($("questN").innerHTML !== qn) $("questN").innerHTML = qn;          // re-render only on change, or the bump animation restarts forever
   },
   sync() {
     $("play").textContent = Audio.playing ? "Pauze" : "Atskaņot";
@@ -2079,7 +2107,7 @@ function frame(now) {
   const t = now / 1000, at = Audio.time(), beat = Math.max(0, (at - CONFIG.beatOffset) * CONFIG.bpm / 60);
   input.jumpBuf = Math.max(0, input.jumpBuf - dt); input.downT = input.down ? input.downT + dt : 0;
 
-  updateSub(dt);
+  updateSub(dt); updateKit(dt);
   figures.forEach(f => f.physics(dt, t));
   figures.forEach(f => f.animate(dt, t, beat));
   figures.forEach(f => { if (f.cable && f.jackWorld) f.cable.update(dt, f.jackWorld); Audio.setOn(f.i, stemOn(f)); });
