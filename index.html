@@ -913,27 +913,30 @@ const GAME = {
     px.globalCompositeOperation = "destination-in"; px.fillStyle = fade; px.fillRect(0, 0, CW, ph);
     x.drawImage(pic, 0, 0);
     x.textAlign = "center"; x.textBaseline = "alphabetic";
-    // the title is the biggest thing on the card: as large as fits, on two lines if it has to
-    { const T = this.title(), maxW = 980, fit = (t, fs) => { x.font = `400 ${fs}px Bungee, sans-serif`; return x.measureText(t).width <= maxW; };
-      let lines = [T], fs = 150;
-      while (fs > 96 && !fit(T, fs)) fs -= 4;
-      if (!fit(T, fs)) {                                   // split at the space nearest the middle
+    // 1) my concert score, in big letters
+    x.fillStyle = "rgba(255,247,234,.75)"; x.font = "700 34px Onest, sans-serif"; x.fillText("MANS KONCERTA SCORE", CW / 2, 1050);
+    { let fs = 210; const v = this.fmtScore(); x.font = `400 ${fs}px Bungee, sans-serif`; while (x.measureText(v).width > 960 && fs > 100) { fs -= 6; x.font = `400 ${fs}px Bungee, sans-serif`; }
+      x.shadowColor = "rgba(255,170,40,.6)"; x.shadowBlur = 50; x.fillStyle = "#ffc233"; x.fillText(v, CW / 2, 1250); x.shadowBlur = 0; }
+    // 2) the title, large (two lines if it has to)
+    { const T = this.title(), maxW = 960, fit = (t, f) => { x.font = `400 ${f}px Bungee, sans-serif`; return x.measureText(t).width <= maxW; };
+      let lines = [T], fs = 96;
+      while (fs > 64 && !fit(T, fs)) fs -= 4;
+      if (!fit(T, fs)) {
         const w = T.split(" "); let best = null;
         for (let k = 1; k < w.length; k++) { const a = w.slice(0, k).join(" "), b = w.slice(k).join(" "), d = Math.abs(a.length - b.length); if (!best || d < best.d) best = { a, b, d }; }
-        lines = best ? [best.a, best.b] : [T]; fs = 150; while (fs > 60 && !lines.every(l => fit(l, fs))) fs -= 4;
+        lines = best ? [best.a, best.b] : [T]; fs = 96; while (fs > 44 && !lines.every(l => fit(l, fs))) fs -= 4;
       }
-      x.font = `400 ${fs}px Bungee, sans-serif`; x.shadowColor = "rgba(255,170,40,.6)"; x.shadowBlur = 44; x.fillStyle = "#ffc233";
-      const lh = fs * 1.02, top = 1180 - (lines.length - 1) * lh / 2;
-      lines.forEach((l, k) => x.fillText(l, CW / 2, top + k * lh)); x.shadowBlur = 0; }
-    // three numbers underneath, clearly smaller than the title
-    const stats = [["Score", this.fmtScore()], ["Bardaks", this.pct() + "%"], ["Side quest", `${this.found.size}/${this.secrets.length}`]];
+      x.font = `400 ${fs}px Bungee, sans-serif`; x.fillStyle = "#fff7ea";
+      const lh = fs * 1.05, top = 1420 - (lines.length - 1) * lh / 2;
+      lines.forEach((l, k) => x.fillText(l, CW / 2, top + k * lh)); }
+    // 3) the small stats
+    const stats = [["Bardaks", this.pct() + "%"], ["Side quest", `${this.found.size}/${this.secrets.length}`]];
     stats.forEach(([k, v], i) => {
-      const cx = CW / 2 + (i - 1) * 340;
-      x.fillStyle = "rgba(255,247,234,.7)"; x.font = "700 28px Onest, sans-serif"; x.fillText(k.toUpperCase(), cx, 1500);
-      x.fillStyle = "#fff7ea"; x.font = `400 ${v.length > 6 ? 50 : 60}px Bungee, sans-serif`; x.fillText(v, cx, 1575);
+      const cx = CW / 2 + (i - 0.5) * 360;
+      x.fillStyle = "rgba(255,247,234,.65)"; x.font = "700 26px Onest, sans-serif"; x.fillText(k.toUpperCase(), cx, 1650);
+      x.fillStyle = "#ffc233"; x.font = "400 52px Bungee, sans-serif"; x.fillText(v, cx, 1718);
     });
-    x.strokeStyle = "rgba(255,247,234,.18)"; x.lineWidth = 2;
-    for (const dx of [-170, 170]) { x.beginPath(); x.moveTo(CW / 2 + dx, 1470); x.lineTo(CW / 2 + dx, 1590); x.stroke(); }
+    x.strokeStyle = "rgba(255,247,234,.18)"; x.lineWidth = 2; x.beginPath(); x.moveTo(CW / 2, 1622); x.lineTo(CW / 2, 1730); x.stroke();
     x.fillStyle = "rgba(255,247,234,.75)"; x.font = "700 38px Onest, sans-serif"; x.fillText("tanavsaule.lv/pamostos", CW / 2, 1840);
     return await new Promise(r => c.toBlob(r, "image/png"));
   },
