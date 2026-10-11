@@ -683,13 +683,14 @@ const Audio = {
 const canvas = document.getElementById("game"), ctx = canvas.getContext("2d");
 const mask = document.createElement("canvas"), mctx = mask.getContext("2d");
 const refl = document.createElement("canvas"), rctx = refl.getContext("2d");   // reflection is drawn opaque here, then faded as one layer
+let DPR_CAP = 2, slowT = 0;   // drops a notch if the device cannot keep up (big iPad screens)
 let consoleH = 110, mastH = 70, camY = 0, cw = 0, ch = 0, dpr = 1, view = new DOMMatrix(), camX = 0, sc = 1, ox = 0, oy = 0;
 function resize() {
   if (!canvas.clientWidth) return;
   consoleH = document.getElementById("console").offsetHeight;
   { const hud = document.querySelector(".masthead"); if (hud) mastH = Math.max(60, hud.getBoundingClientRect().bottom - canvas.getBoundingClientRect().top); }
   document.querySelectorAll(".pad").forEach(p => p.style.bottom = `calc(env(safe-area-inset-bottom, 0px) + ${consoleH + 26}px)`);
-  cw = canvas.clientWidth; ch = canvas.clientHeight; dpr = Math.min(devicePixelRatio || 1, 2);
+  cw = canvas.clientWidth; ch = canvas.clientHeight; dpr = Math.min(devicePixelRatio || 1, DPR_CAP);
   canvas.width = mask.width = refl.width = Math.round(cw * dpr); canvas.height = mask.height = refl.height = Math.round(ch * dpr);
 }
 new ResizeObserver(resize).observe(canvas); new ResizeObserver(resize).observe(document.getElementById("console")); new ResizeObserver(resize).observe(document.querySelector(".masthead")); resize();
@@ -845,14 +846,14 @@ const GAME = {
   secrets: [
     { id: "truss", name: "Augstāk par visiem", hint: "Uzkāp pašā augšā uz stalažām." },
     { id: "head", name: "Lēciens uz galvas", hint: "Uzlec kādam grupas biedram uz galvas." },
-    { id: "pyramid", name: "Piramīda", hint: "Stāvi uz kāda, kurš pats stāv uz vēl kāda." },
+    { id: "pyramid", name: "Cilvēku tornis", hint: "Uzliec 3 cilvēkus vienu virs otra." },
     { id: "drums", name: "Bez bungām", hint: "Iesper pa bungu komplektu." },
     { id: "amps", name: "Ģitāristu murgs", hint: "Izsper visus kombjus un monitoru." },
     { id: "football", name: "Burtu futbols", hint: "Iesper pa burtiem uz zemes 5 reizes." },
     { id: "silence", name: "Pilnīgs klusums", hint: "Panāc, ka neskan neviens instruments." },
     { id: "nosign", name: "Bez uzraksta", hint: "Visi uzraksta burti uz zemes vienlaikus." },
     { id: "scaffold", name: "Stalažu gāzējs", hint: "Apgāz stalažas ar 5 spērieniem." },
-    { id: "dance", name: "Dancing Queen", hint: "Nodejo 2 dejas." },
+    { id: "dance", name: "Dancing Queen", hint: "Uzdejo." },
     { id: "birds", name: "Aizbiedē putnus", hint: "Uzkāp augšā pie putniem uz trases." },
     { id: "toss", name: () => controlled && controlled.isDrummer ? "Stiki vainīgi" : controlled && controlled.cfg.build === "vocal" ? "Mic vainīgs" : "Ģitāra vainīga", hint: "Turi “Mest” līdz galam un met pilnā spēkā." },
     { id: "saturn", name: "Līdz sapņa malai", hint: "Uzlec uz Saturna pašā debesu augšā." },
@@ -878,7 +879,7 @@ const GAME = {
   check(at) {                                              // tricks that are a state rather than a moment
     const c = controlled;
     if (c && c.onGround && Math.abs(c.y - TRUSS) < 2) this.secret("truss");
-    if (c && c.standOn && c.standOn.standOn) this.secret("pyramid");
+    { const top = figures.find(f => f.standOn && f.standOn.standOn); if (top) this.secret("pyramid", top.x, top.box().t - 40); }   // any three stacked up
     if (c && c.onGround && Math.abs(c.y - SAT.p.t) < 2 && c.x > SAT.p.l - 4 && c.x < SAT.p.r + 4) this.secret("saturn", SAT.x, SAT.y - SAT.r - 150);
     if (CONFIG.members.every(m => !m.amp || m.amp.fly)) this.secret("amps", this.lastAmp ? this.lastAmp.x : undefined, FLOOR - 170);
     if (SIGN.letters.length && SIGN.letters.every(l => l.fallen && !l.rising)) this.secret("nosign", W / 2, SIGN.y - 40);
@@ -1212,7 +1213,7 @@ class Musician {
     if (this.ampTask && this.ampTask.fly && this.ampTask.fly.carry === this) { const F = this.ampTask.fly; F.carry = null; F.rest = false; F.vx = dir * 220; F.vy = -320; F.vr = dir * 4; F.downT = 0; }
     this.knockT = 1.8; this.lieDir = dir; this.rockT = this.danceT = 0; for (const f of figures) if (f.standOn === this) f.vy = -300; }
   rock() { if (this.awake) { this.rockT = 5; this.danceT = 0; } }
-  dance() { if (!this.awake) return; if (this === controlled && this.danceT < 0.5 && Audio.playing && ++GAME.danceN >= 2) GAME.secret("dance"); this.danceT = 4; this.rockT = 0; }
+  dance() { if (!this.awake) return; if (this === controlled && this.danceT < 0.5 && Audio.playing && ++GAME.danceN >= 1) GAME.secret("dance"); this.danceT = 4; this.rockT = 0; }
   kick() {
     if (!this.awake || this.knockT > 0 || this.kickT > 0) return;
     this.kickT = 0.4; const d = this.face, x0 = this.x + d * 8, x1 = this.x + d * 90, top = this.y - 115 * this.k, bot = this.y + 4;
@@ -1431,6 +1432,7 @@ class Musician {
       if (this.seat < 0.01) this.seat = 0;
     }
     if (this.standOn) this.x += this.standOn.dx;
+    if (JUP.spin && this.onGround && Math.abs(this.y - JUP.p.t) < 2 && this.x > JUP.p.l - 4 && this.x < JUP.p.r + 4) this.x += JUP.spin * JUP.r * dt;   // the surface carries you along
     this.vy += G * dt;
 
     this.x += this.vx * dt;
@@ -1461,6 +1463,7 @@ class Musician {
         if (this.x > p.l - 4 && this.x < p.r + 4 && prevB <= p.t + 2 && this.y >= p.t) {
           this.y = p.t; this.vy = 0; this.onGround = true;
           if (p.kind === "kit" && vIn > 250 && boss) knockKitPart(this.x);
+          if (p === JUP.p && boss && !JUP.spin) JUP.spin = 2.6;     // land on Jupiter and it starts to turn
           if (p === MOON.p && boss && MOON.st === "up") { MOON.st = "wobble"; MOON.t = 0.55; SFX.body(); }
           if (p.kind === "letter" && !(p.letter.fallT > 0)) { p.letter.fallT = 0.2; if (boss && !this.stuntPlat) GAME.add(5, this.x, this.y - 140); }
         }
@@ -1933,7 +1936,7 @@ function drawLighting(t, beat, dt0 = 0.016) {
   { mctx.setTransform(view); const g = mctx.createLinearGradient(0, TRUSS - 150, 0, TRUSS + 6);   // light the truss-top band
     g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(0.7, "rgba(255,255,255,.55)"); g.addColorStop(1, "rgba(255,255,255,.75)");
     mctx.fillStyle = g; mctx.fillRect(-1500, TRUSS - 150, W + 3000, 156); }
-  lightSky(disc);
+  lightSky();
   for (const l of SIGN.letters) for (const [x, y, on] of l.lit) { mctx.globalAlpha = on * 0.6; mctx.drawImage(GLOW_WHITE, x - 16, y - 16, 32, 32); }
   for (const p of FX.parts) { mctx.globalAlpha = clamp(p.life / p.max, 0, 1); const s = p.kind === "fire" ? p.size * 2.4 : 40; mctx.drawImage(GLOW_WHITE, p.x - s / 2, p.y - s / 2, s, s); }
   mctx.globalAlpha = 1; mctx.globalCompositeOperation = "source-over";
@@ -2063,14 +2066,15 @@ const MOON = { hx: 474, hy: -277, r: 78, x: 474, y: -277, st: "up", t: 0, vx: 0,
 MOON.p = addP(MOON.hx - 60, MOON.hx + 60, MOON.hy - MOON.r + 3, "moon");
 const STARS = (() => { let sd = 7; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647; return Array.from({ length: 1500 }, (_, i) => ({ x: -400 + r() * (W + 800), y: i < 190 ? -1100 + r() * 1040 : i < 420 ? -1900 + r() * 1000 : -2900 + r() * 1800, s: 0.6 + r() * 1.3, ph: r() * 6 })); })();
 // Jupiter, way up above the clouds: hop on and stand on the big planet
-const JUP = { x: 400, y: -900, r: 74 }; JUP.p = addP(JUP.x - 52, JUP.x + 52, JUP.y - JUP.r + 4, "moon");
+const JUP = { x: 400, y: -900, r: 74, ang: 0, spin: 0 }; JUP.p = addP(JUP.x - 52, JUP.x + 52, JUP.y - JUP.r + 4, "moon");
 // and above it all Saturn with its rings: you can stand on it too
 const SAT = { x: 380, y: -1700, r: 58 }; SAT.p = addP(SAT.x - 42, SAT.x + 42, SAT.y - SAT.r + 4, "moon");
 const MOON_LAND = { combo: 1, stack: 1, wedge: 1, scaf: 1, case: 1, riser: 1 };
 const SHOOT = { t: 2, x: 0, y: 0, vx: 0, vy: 0, life: 0, max: 0 };
 const DIPPER = [[0, 0], [44, -10], [84, -4], [116, 14], [122, 52], [176, 60], [188, 20]].map(([x, y]) => [40 + x, -1160 + y]);
-function resetSky() { Object.assign(MOON, { x: MOON.hx, y: MOON.hy, st: "up", t: 0, vx: 0, vy: 0, rot: 0, vr: 0, wob: 0 }); MOON.p.gone = false; }
+function resetSky() { JUP.ang = 0; JUP.spin = 0; Object.assign(MOON, { x: MOON.hx, y: MOON.hy, st: "up", t: 0, vx: 0, vy: 0, rot: 0, vr: 0, wob: 0 }); MOON.p.gone = false; }
 function updateSky(dt) {
+  JUP.ang += JUP.spin * dt;
   const M = MOON;
   if (M.st === "wobble") { M.t -= dt; M.wob = Math.sin(M.t * 40) * 0.12; if (M.t <= 0) { M.st = "fall"; M.p.gone = true; M.vx = rnd(-70, 70); M.vy = -120; M.vr = rnd(-3, 3); M.wob = 0; } }
   else if (M.st === "fall" || M.st === "roll" || M.st === "down") {
@@ -2114,65 +2118,82 @@ function cloudShape(c, x, t, w) {                        // a puffy cloud: a fla
   c.quadraticCurveTo(x + w / 2 + 6, t + h * 0.6, x + w * 0.36, t + h * 0.72);
   c.lineTo(x - w * 0.38, t + h * 0.72); c.closePath();
 }
-function drawSky(c) {
-  for (const cl of CLOUDS) {                              // moonlit clouds
-    const g = c.createLinearGradient(0, cl.t - cl.w * 0.15, 0, cl.t + cl.w * 0.3);
-    g.addColorStop(0, "#ffd9b8"); g.addColorStop(0.45, "#e98a6a"); g.addColorStop(1, "#6e1f22");
-    c.fillStyle = g; cloudShape(c, cl.x, cl.t + 4, cl.w); c.fill();
+// sky bodies are painted once into small canvases and then just stamped (fast on iPad)
+const SKY_RES = 2;
+function sprite(w, h, draw) { const cv = document.createElement("canvas"); cv.width = Math.ceil(w * SKY_RES); cv.height = Math.ceil(h * SKY_RES); const x = cv.getContext("2d"); x.scale(SKY_RES, SKY_RES); draw(x); return cv; }
+for (const cl of CLOUDS) cl.spr = sprite(cl.w + 20, cl.w * 0.62, x => {
+  const t = cl.w * 0.3, g = x.createLinearGradient(0, t - cl.w * 0.15, 0, t + cl.w * 0.3);
+  g.addColorStop(0, "#ffd9b8"); g.addColorStop(0.45, "#e98a6a"); g.addColorStop(1, "#6e1f22");
+  x.fillStyle = g; cloudShape(x, cl.w / 2 + 10, t, cl.w); x.fill();
+});
+const JUP_SPR = sprite(JUP.r * 2 + 4, JUP.r * 2 + 4, x => {   // bands and the Great Red Spot (these turn)
+  const R = JUP.r; x.translate(R + 2, R + 2); x.beginPath(); x.arc(0, 0, R, 0, Math.PI * 2); x.clip();
+  x.fillStyle = "#f1dcb8"; x.fillRect(-R, -R, R * 2, R * 2);
+  for (const [y, h, col] of [[-0.86, 0.16, "#c79a6e"], [-0.55, 0.14, "#b4744a"], [-0.3, 0.1, "#e8c9a0"], [-0.12, 0.2, "#a8603a"], [0.14, 0.1, "#dcb48a"], [0.32, 0.18, "#b8784e"], [0.62, 0.12, "#cf9f74"], [0.8, 0.2, "#a86e4a"]]) {
+    x.fillStyle = col; x.beginPath(); x.moveTo(-R, y * R);
+    for (let k = -R; k <= R; k += 8) x.lineTo(k, (y + 0.02 * Math.sin(k * 0.09 + y * 9)) * R);
+    x.lineTo(R, (y + h) * R); x.lineTo(-R, (y + h) * R); x.closePath(); x.fill();
   }
-  {                                                       // Jupiter: creamy bands, rusty belts and the Great Red Spot
-    const J = JUP; c.save(); c.translate(J.x, J.y); c.rotate(-0.12);
-    c.beginPath(); c.arc(0, 0, J.r, 0, Math.PI * 2); c.clip();
-    c.fillStyle = "#f1dcb8"; c.fillRect(-J.r, -J.r, J.r * 2, J.r * 2);
-    for (const [y, h, col] of [[-0.86, 0.16, "#c79a6e"], [-0.55, 0.14, "#b4744a"], [-0.3, 0.1, "#e8c9a0"], [-0.12, 0.2, "#a8603a"], [0.14, 0.1, "#dcb48a"], [0.32, 0.18, "#b8784e"], [0.62, 0.12, "#cf9f74"], [0.8, 0.2, "#a86e4a"]]) {
-      c.fillStyle = col; c.beginPath(); c.moveTo(-J.r, y * J.r);
-      for (let x = -J.r; x <= J.r; x += 8) c.lineTo(x, (y + 0.02 * Math.sin(x * 0.09 + y * 9)) * J.r);
-      c.lineTo(J.r, (y + h) * J.r); c.lineTo(-J.r, (y + h) * J.r); c.closePath(); c.fill();
+  x.fillStyle = "#c2462a"; x.beginPath(); x.ellipse(R * 0.28, R * 0.26, R * 0.2, R * 0.11, 0, 0, Math.PI * 2); x.fill();
+});
+const ROUND_SHADE = r => sprite(r * 2 + 4, r * 2 + 4, x => {   // light from the upper left, stays put while the planet turns
+  x.translate(r + 2, r + 2); const sh = x.createRadialGradient(-r * 0.4, -r * 0.4, r * 0.2, 0, 0, r);
+  sh.addColorStop(0, "rgba(255,255,255,.12)"); sh.addColorStop(0.7, "rgba(0,0,0,0)"); sh.addColorStop(1, "rgba(40,10,0,.45)");
+  x.fillStyle = sh; x.beginPath(); x.arc(0, 0, r, 0, Math.PI * 2); x.fill();
+});
+const JUP_SHADE = ROUND_SHADE(JUP.r);
+const SAT_HALF = SAT.r * 2.4;
+const SAT_SPR = sprite(SAT_HALF * 2, SAT_HALF * 2, c => {
+  const R = SAT.r, ring = (from, to) => {
+    for (const [k, w, col] of [[1.55, 9, "rgba(214,190,150,.9)"], [1.78, 7, "rgba(236,214,172,.95)"], [2.02, 6, "rgba(196,168,128,.85)"], [2.2, 3, "rgba(230,206,160,.7)"]]) {
+      c.strokeStyle = col; c.lineWidth = w; c.beginPath(); c.ellipse(0, 0, R * k, R * k * 0.26, 0, from, to); c.stroke();
     }
-    c.fillStyle = "#c2462a"; c.beginPath(); c.ellipse(J.r * 0.28, J.r * 0.26, J.r * 0.2, J.r * 0.11, 0, 0, Math.PI * 2); c.fill();   // the Great Red Spot
-    const sh = c.createRadialGradient(-J.r * 0.4, -J.r * 0.4, J.r * 0.2, 0, 0, J.r);       // round it off with a soft shadow
-    sh.addColorStop(0, "rgba(255,255,255,.12)"); sh.addColorStop(0.7, "rgba(0,0,0,0)"); sh.addColorStop(1, "rgba(40,10,0,.45)");
-    c.fillStyle = sh; c.fillRect(-J.r, -J.r, J.r * 2, J.r * 2);
-    c.restore();
-  }
-  {                                                       // Saturn: the back of the rings, the planet, then the front of the rings
-    const S = SAT, R = S.r, ring = (from, to) => {
-      for (const [k, w, col] of [[1.55, 9, "rgba(214,190,150,.9)"], [1.78, 7, "rgba(236,214,172,.95)"], [2.02, 6, "rgba(196,168,128,.85)"], [2.2, 3, "rgba(230,206,160,.7)"]]) {
-        c.strokeStyle = col; c.lineWidth = w; c.beginPath(); c.ellipse(0, 0, R * k, R * k * 0.26, 0, from, to); c.stroke();
-      }
-    };
-    c.save(); c.translate(S.x, S.y); c.rotate(-0.22);
-    ring(Math.PI, Math.PI * 2);
-    c.save(); c.beginPath(); c.arc(0, 0, R, 0, Math.PI * 2); c.clip();
-    c.fillStyle = "#ead7a6"; c.fillRect(-R, -R, R * 2, R * 2);
-    for (const [y, h, col] of [[-0.8, 0.2, "#d8bd86"], [-0.42, 0.14, "#cfae78"], [-0.12, 0.08, "#f2e2b8"], [0.18, 0.16, "#c9a26c"], [0.55, 0.14, "#d6b783"], [0.8, 0.2, "#bf9864"]]) { c.fillStyle = col; c.fillRect(-R, y * R, R * 2, h * R); }
-    const sh = c.createRadialGradient(-R * 0.4, -R * 0.4, R * 0.2, 0, 0, R); sh.addColorStop(0, "rgba(255,255,255,.14)"); sh.addColorStop(0.7, "rgba(0,0,0,0)"); sh.addColorStop(1, "rgba(40,20,0,.45)");
-    c.fillStyle = sh; c.fillRect(-R, -R, R * 2, R * 2);
-    c.fillStyle = "rgba(60,30,0,.35)"; c.beginPath(); c.ellipse(0, R * 0.12, R * 1.6, R * 0.12, 0, 0, Math.PI * 2); c.fill();   // the rings' shadow on the planet
-    c.restore();
-    ring(0, Math.PI);
-    c.restore();
-  }
+  };
+  c.translate(SAT_HALF, SAT_HALF); c.rotate(-0.22);
+  ring(Math.PI, Math.PI * 2);
+  c.save(); c.beginPath(); c.arc(0, 0, R, 0, Math.PI * 2); c.clip();
+  c.fillStyle = "#ead7a6"; c.fillRect(-R, -R, R * 2, R * 2);
+  for (const [y, h, col] of [[-0.8, 0.2, "#d8bd86"], [-0.42, 0.14, "#cfae78"], [-0.12, 0.08, "#f2e2b8"], [0.18, 0.16, "#c9a26c"], [0.55, 0.14, "#d6b783"], [0.8, 0.2, "#bf9864"]]) { c.fillStyle = col; c.fillRect(-R, y * R, R * 2, h * R); }
+  const sh = c.createRadialGradient(-R * 0.4, -R * 0.4, R * 0.2, 0, 0, R); sh.addColorStop(0, "rgba(255,255,255,.14)"); sh.addColorStop(0.7, "rgba(0,0,0,0)"); sh.addColorStop(1, "rgba(40,20,0,.45)");
+  c.fillStyle = sh; c.fillRect(-R, -R, R * 2, R * 2);
+  c.fillStyle = "rgba(60,30,0,.35)"; c.beginPath(); c.ellipse(0, R * 0.12, R * 1.6, R * 0.12, 0, 0, Math.PI * 2); c.fill();
+  c.restore();
+  ring(0, Math.PI);
+});
+const MOON_SPR = sprite(MOON.r * 2 + 4, MOON.r * 2 + 4, c => {
+  const r = MOON.r; c.translate(r + 2, r + 2);
+  const mg = c.createRadialGradient(-r * 0.3, -r * 0.3, 2, 0, 0, r); mg.addColorStop(0, "#fff8e8"); mg.addColorStop(1, "#f3d9a8");
+  c.fillStyle = mg; c.beginPath(); c.arc(0, 0, r, 0, Math.PI * 2); c.fill();
+  c.fillStyle = "rgba(170,120,80,.28)"; const k = r / 52;
+  for (const [x, y, rr] of [[-16, -11, 11], [14, 14, 8], [19, -19, 5], [-8, 22, 7], [3, -3, 4], [-24, 10, 4]]) { c.beginPath(); c.arc(x * k, y * k, rr * k, 0, Math.PI * 2); c.fill(); }
+});
+const SOFT_WHITE = glowSprite("rgba(255,255,255,1)", "rgba(255,255,255,0.75)", 128);   // cheap soft lights for the light map
+const HALO_WARM = glowSprite("rgba(255,236,200,.5)", "rgba(255,226,190,.22)", 128);
+const viewRange = () => ({ top: -oy / sc - 40, bot: (ch - oy) / sc + 40 });
+const inView = (y0, y1, v) => y1 > v.top && y0 < v.bot;
+function drawSky(c) {
+  const v = viewRange();
+  for (const cl of CLOUDS) if (inView(cl.t - cl.w * 0.3, cl.t + cl.w * 0.32, v)) c.drawImage(cl.spr, cl.x - cl.w / 2 - 10, cl.t + 4 - cl.w * 0.3, cl.w + 20, cl.w * 0.62);
+  { const J = JUP, s = J.r * 2 + 4; if (inView(J.y - J.r, J.y + J.r, v)) { c.save(); c.translate(J.x, J.y); c.rotate(-0.12 + J.ang); c.drawImage(JUP_SPR, -s / 2, -s / 2, s, s); c.restore(); c.drawImage(JUP_SHADE, J.x - s / 2, J.y - s / 2, s, s); } }
+  if (inView(SAT.y - SAT_HALF, SAT.y + SAT_HALF, v)) c.drawImage(SAT_SPR, SAT.x - SAT_HALF, SAT.y - SAT_HALF, SAT_HALF * 2, SAT_HALF * 2);
   if (MOON.st === "up" || MOON.st === "wobble") drawMoon(c);
 }
 function drawMoon(c) {
-  const M = MOON;
+  const M = MOON, s = M.r * 2 + 4;
   if (M.st === "gone") return;
-  c.save(); c.translate(M.x, M.y); c.rotate(M.rot + M.wob);
-  const mg = c.createRadialGradient(-M.r * 0.3, -M.r * 0.3, 2, 0, 0, M.r);
-  mg.addColorStop(0, "#fff8e8"); mg.addColorStop(1, "#f3d9a8");
-  c.fillStyle = mg; c.beginPath(); c.arc(0, 0, M.r, 0, Math.PI * 2); c.fill();
-  c.fillStyle = "rgba(170,120,80,.28)";                   // craters
-  const k = M.r / 52; for (const [x, y, r] of [[-16, -11, 11], [14, 14, 8], [19, -19, 5], [-8, 22, 7], [3, -3, 4], [-24, 10, 4]]) { c.beginPath(); c.arc(x * k, y * k, r * k, 0, Math.PI * 2); c.fill(); }
-  c.restore();
+  c.save(); c.translate(M.x, M.y); c.rotate(M.rot + M.wob); c.drawImage(MOON_SPR, -s / 2, -s / 2, s, s); c.restore();
 }
-function lightSky(disc) {                                 // into the light map: clouds and the moon show in full colour
-  disc(JUP.x, JUP.y, JUP.r + 6, 1, 0.9);
-  disc(SAT.x, SAT.y, SAT.r * 2.4, 1, 0.75); disc(SAT.x, SAT.y, SAT.r * 3.2, 0.3, 0.3); disc(JUP.x, JUP.y, JUP.r * 2.6, 0.3, 0.2);
-  for (const cl of CLOUDS) disc(cl.x, cl.t + 10, cl.w * 0.58, 0.95, 0.72);
-  const M = MOON; if (M.st === "gone") return;
-  disc(M.x, M.y, M.r + 8, 1, 0.85); disc(M.x, M.y, M.r * 5, 0.38, 0.15);   // the moon and its light
-  if (M.st !== "up" && M.st !== "wobble") { const fade = clamp(1 - (FLOOR - M.y - M.r) / 300, 0, 1); if (fade > 0.02) disc(M.x, 2 * FLOOR - M.y, M.r * 1.6, 0.75 * fade, 0.45); }   // and its shine on the floor
+function lightSky() {                                     // into the light map: clouds, planets and the moon show in full colour
+  const v = viewRange(), soft = (x, y, r, a) => { if (!inView(y - r, y + r, v)) return; mctx.globalAlpha = a; mctx.drawImage(SOFT_WHITE, x - r, y - r, r * 2, r * 2); };
+  soft(JUP.x, JUP.y, JUP.r * 1.5, 1); soft(JUP.x, JUP.y, JUP.r * 2.6, 0.3);
+  soft(SAT.x, SAT.y, SAT.r * 3.2, 1);
+  for (const cl of CLOUDS) soft(cl.x, cl.t + 10, cl.w * 0.75, 0.95);
+  const M = MOON;
+  if (M.st !== "gone") {
+    soft(M.x, M.y, M.r * 1.5, 1); soft(M.x, M.y, M.r * 2.4, 0.38);
+    if (M.st !== "up" && M.st !== "wobble") { const fade = clamp(1 - (FLOOR - M.y - M.r) / 300, 0, 1); if (fade > 0.02) soft(M.x, 2 * FLOOR - M.y, M.r * 2, 0.75 * fade); }
+  }
+  mctx.globalAlpha = 1;
 }
 // how strong the light-speed look is: none at the start and end of the fall, full only in the middle
 function diveAmt() {
@@ -2220,18 +2241,16 @@ function glowSky(c, t) {                                  // additive: stars, th
     c.globalAlpha = 1; c.strokeStyle = g; c.lineWidth = 2.2; c.lineCap = "round"; c.beginPath(); c.moveTo(tx, ty); c.lineTo(hx, hy); c.stroke();
     c.globalAlpha = a; c.fillStyle = "#fff4dc"; c.beginPath(); c.arc(hx, hy, 2.4, 0, Math.PI * 2); c.fill();
   }
-  { const J = JUP, h = c.createRadialGradient(J.x, J.y, J.r * 0.9, J.x, J.y, J.r * 2.2); h.addColorStop(0, "rgba(255,210,160,.22)"); h.addColorStop(1, "rgba(255,210,160,0)"); c.globalAlpha = 1; c.fillStyle = h; c.fillRect(J.x - J.r * 2.2, J.y - J.r * 2.2, J.r * 4.4, J.r * 4.4); }
+  { const J = JUP, R = J.r * 2.4; if (J.y + R > top && J.y - R < bot) { c.globalAlpha = 0.7; c.drawImage(HALO_WARM, J.x - R, J.y - R, R * 2, R * 2); } }
   if (MOON.st !== "up" && MOON.st !== "wobble") {        // the fallen moon's shine in the glossy floor: a soft glow and a few shimmering streaks
     const M = MOON, ry = FLOOR + Math.max(M.r * 0.9, FLOOR - M.y) * 0.85, fade = clamp(1 - (FLOOR - M.y - M.r) / 260, 0.35, 1);
-    c.save(); c.translate(M.x, ry); c.scale(1, 0.55);
-    const g = c.createRadialGradient(0, 0, 0, 0, 0, M.r * 1.5); g.addColorStop(0, `rgba(255,240,210,${0.75 * fade})`); g.addColorStop(0.5, `rgba(255,230,190,${0.4 * fade})`); g.addColorStop(1, "rgba(255,230,190,0)");
-    c.globalAlpha = 1; c.fillStyle = g; c.beginPath(); c.arc(0, 0, M.r * 1.5, 0, Math.PI * 2); c.fill(); c.restore();
+    c.save(); c.translate(M.x, ry); c.scale(1, 0.55); c.globalAlpha = Math.min(1, 1.6 * fade); c.drawImage(HALO_WARM, -M.r * 1.6, -M.r * 1.6, M.r * 3.2, M.r * 3.2); c.restore();
     c.fillStyle = "#fff4dc";
     for (let i = 0; i < 6; i++) { const yy = FLOOR + 10 + i * 13, w = M.r * (1.1 - i * 0.12) * (0.8 + 0.2 * Math.sin(t * 2.3 + i * 1.7)); c.globalAlpha = (0.65 - i * 0.08) * fade; c.fillRect(M.x - w / 2 + Math.sin(t * 1.6 + i) * 6, yy, w, 3); }
     c.globalAlpha = 1;
   }
   const M = MOON;
-  if (M.st !== "gone") { const h = c.createRadialGradient(M.x, M.y, M.r * 0.8, M.x, M.y, M.r * 3); h.addColorStop(0, "rgba(255,236,200,.35)"); h.addColorStop(1, "rgba(255,236,200,0)"); c.globalAlpha = 1; c.fillStyle = h; c.fillRect(M.x - M.r * 3, M.y - M.r * 3, M.r * 6, M.r * 6); }
+  if (M.st !== "gone" && M.y + M.r * 3 > top && M.y - M.r * 3 < bot) { c.globalAlpha = 1; c.drawImage(HALO_WARM, M.x - M.r * 3, M.y - M.r * 3, M.r * 6, M.r * 6); }
   c.globalAlpha = 1;
 }
 // birds perch on the truss; climb up there and they take fright and fly off (they come back later)
@@ -2520,7 +2539,11 @@ $("start").addEventListener("click", async () => {
 let last = performance.now(), lastSec = -1, lastAt = 0;
 function frame(now) {
   if (stageView.hidden) { last = now; requestAnimationFrame(frame); return; }
-  const dt = Math.min(0.033, (now - last) / 1000); last = now;
+  const raw = (now - last) / 1000, dt = Math.min(0.033, raw); last = now;
+  if (Audio.playing && raw < 0.5) {                         // adaptive sharpness: steady frame rate beats extra pixels
+    slowT = raw > 0.026 ? slowT + raw : Math.max(0, slowT - raw * 0.5);
+    if (slowT > 1.5 && DPR_CAP > 1 && (devicePixelRatio || 1) > 1) { DPR_CAP = Math.max(1, DPR_CAP - 0.35); slowT = 0; resize(); }
+  }
   const t = now / 1000, at = Audio.time(), beat = Math.max(0, (at - CONFIG.beatOffset) * CONFIG.bpm / 60);
   input.jumpBuf = Math.max(0, input.jumpBuf - dt); input.downT = input.down ? input.downT + dt : 0;
 
