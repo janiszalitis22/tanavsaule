@@ -266,6 +266,7 @@ body.on-stage { background: var(--black); color: var(--white); font-family: var(
 .trick:active { background: var(--yellow); color: var(--black); }
 .trick:active i { color: var(--black); }
 .trick { cursor: pointer; }
+#trick-3 { touch-action: none; -webkit-touch-callout: none; }
 .trick.charging { border-color: var(--yellow); background: linear-gradient(to right, rgba(255, 194, 51, .55) calc(var(--p, 0) * 100%), rgba(11, 2, 2, .35) calc(var(--p, 0) * 100%)); }
 .trick:hover, .trick.flash { color: var(--white); }
 .trick i, .keyhint i { font-style: normal; color: var(--yellow); margin-right: 6px; }
@@ -855,7 +856,7 @@ const GAME = {
     { id: "scaffold", name: "Stalažu gāzējs", hint: "Apgāz stalažas ar 5 spērieniem." },
     { id: "dance", name: "Dancing Queen", hint: "Uzdejo." },
     { id: "birds", name: "Aizbiedē putnus", hint: "Uzkāp augšā pie putniem uz trases." },
-    { id: "toss", name: () => controlled && controlled.isDrummer ? "Stiki vainīgi" : controlled && controlled.cfg.build === "vocal" ? "Mic vainīgs" : "Ģitāra vainīga", hint: "Turi “Mest” līdz galam un met pilnā spēkā." },
+    { id: "toss", name: () => controlled && controlled.isDrummer ? "Stiki vainīgi" : controlled && controlled.cfg.build === "vocal" ? "Mic vainīgs" : "Ģitāra vainīga", hint: "Uzmet instrumentu gaisā." },
     { id: "saturn", name: "Līdz sapņa malai", hint: "Uzlec uz Saturna pašā debesu augšā." },
     { id: "moon", name: "Tā nav saule", hint: "Pa mākoņiem uzlec līdz mēnesim un nogāz to." },
   ],
@@ -2404,7 +2405,7 @@ const CHARGE = {
   release() {
     if (this.t0 === null) return; const p = this.level(); this.t0 = null; CHARGE.paint(0);
     const c = controlled; if (!c || !c.inst.held || !c.awake || c.knockT > 0) return;
-    c.throwInst(true, Math.max(0.12, p)); GAME.add(3); if (p >= 0.98) GAME.secret("toss"); UI.refresh();
+    c.throwInst(true, Math.max(0.12, p)); GAME.add(3); GAME.secret("toss"); UI.refresh();   // any throw counts
   },
   paint(p) { const b = document.getElementById("trick-3"); if (b) { b.style.setProperty("--p", p); b.classList.toggle("charging", p > 0); } },
 };
